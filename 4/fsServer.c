@@ -239,17 +239,18 @@ return_type fsRead_rpc(const int nparams, arg_type* a) {
         return r;
     }
 
-    fs_response *response = (fs_response *)malloc(sizeof(fs_response));
-
     int fd = *(int *)a->arg_val;
     int count = *(int *)a->next->arg_val;
-    int bytesread = _fsRead(fd, (void *)(response->retval + 4), count);
-    *(int *)response->retval = bytesread;
-    response->in_error = bytesread < 0 ? 1 : 0;
-    response->_errno = errno;
+    int return_size = (3 * sizeof(int)) + count;
+    void *response = malloc(return_size);
+
+    int bytesread = _fsRead(fd, response + (3 * sizeof(int)), count);
+    *(int *)response = bytesread < 0;
+    *(int *)(response + sizeof(int)) = errno;
+    *(int *)(response + 2 * sizeof(int)) = bytesread;
 
     r.return_val = response;
-    r.return_size = sizeof(fs_response);
+    r.return_size = return_size;
     return r;
 }
 

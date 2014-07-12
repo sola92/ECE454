@@ -101,7 +101,7 @@ struct mount_info* mount_info_list_find(const char *folder_name, bool strict_mat
     return longest_match_so_far;
 }
 
-struct fd_entry *fd_entry_find(int fd) {
+struct fd_entry *fd_entry_list_find(int fd) {
     struct fd_entry *current = fd_list_head;
     for (; current != NULL; current = current->next) {
         if (current->fd == fd) break;
@@ -116,7 +116,7 @@ short int handle_possible_error(fs_response *resp) {
     return resp->in_error;
 }
 
-char *get_relative_path(const char *path, const char *local_folder_name) {
+char *relative_path_from_mount_path(const char *path, const char *local_folder_name) {
     char *relpath;
     if (strcmp(path, local_folder_name) == 0) {
         relpath = (char *) malloc(2);
@@ -159,6 +159,11 @@ int fsMount(const char *ip_or_domain, const unsigned int port_no, const char *lo
 
 int fsUnmount(const char *local_folder_name) {
     struct mount_info *info = mount_info_list_find(local_folder_name, true);
+    if (info == NULL) {
+        errno = ENOENT;
+        return -1;
+    }
+
     list_delete((void **)&mount_list_head, (void *)info, mount_info_next, mount_info_set_next);
     return 0;
 }
@@ -170,7 +175,7 @@ FSDIR* fsOpenDir(const char *folder_name) {
         return NULL;
     }
 
-    char *relative_path = get_relative_path(folder_name, info->local_folder_name);
+    char *relative_path = relative_path_from_mount_path(folder_name, info->local_folder_name);
     if (relative_path == NULL) {
         errno = ENOENT;
         return NULL;
@@ -223,7 +228,7 @@ int fsOpen(const char *fname, int mode) {
         return -1;
     }
 
-    char *path = get_relative_path(fname, info->local_folder_name);
+    char *path = relative_path_from_mount_path(fname, info->local_folder_name);
     if (path == NULL) {
         errno = ENOENT;
         return -1;
@@ -255,7 +260,7 @@ int fsOpen(const char *fname, int mode) {
 }
 
 int fsClose(int fd) {
-    struct fd_entry *current = fd_entry_find(fd);
+    struct fd_entry *current = fd_entry_list_find(fd);
 
     if (current == NULL) {
         errno = EBADF;
@@ -276,7 +281,7 @@ int fsClose(int fd) {
 }
 
 int fsRead(int fd, void *buf, const unsigned int count) {
-    struct fd_entry *current = fd_entry_find(fd);
+    struct fd_entry *current = fd_entry_list_find(fd);
 
     if (current == NULL) {
         errno = EBADF;
@@ -288,19 +293,20 @@ int fsRead(int fd, void *buf, const unsigned int count) {
                                        sizeof(int), (void *) &fd,
                                        sizeof(int), (void *) &count);
 
-    fs_response *response = (fs_response *)ans.return_val;
-
-    if (!handle_possible_error(response)) {
-        int bytesread = *(int *)response->retval;
-        memcpy(buf, response->retval + 4, bytesread);
-        return bytesread;
+    int inerror = *(int *)ans.return_val;
+    if (inerror) {
+        int _errno = *(int *)(ans.return_val + sizeof(int));
+        errno = _errno;
+        return -1;
     }
 
-    return -1;
+    int bytesread = *(int *)(ans.return_val + (2 * sizeof(int)));
+    memcpy(buf, ans.return_val + (3 * sizeof(int)), bytesread);
+    return bytesread;
 }
 
 int fsWrite(int fd, const void *buf, const unsigned int count) {
-    struct fd_entry *current = fd_entry_find(fd);
+    struct fd_entry *current = fd_entry_list_find(fd);
 
     if (current == NULL) {
         errno = EBADF;
