@@ -348,6 +348,31 @@ return_type fsWrite_rpc(const int nparams, arg_type* a) {
     return r;
 }
 
+return_type fsRemove_rpc(const int nparams, arg_type* a) {
+    if(nparams != 1) {
+        /* Error! */
+        r.return_val = NULL;
+        r.return_size = 0;
+        return r;
+    }
+    fs_response *response = (fs_response *)malloc(sizeof(fs_response));
+    char *abspath = concat(ROOT_PATH, (char *)a->arg_val);
+    if (is_file_open(abspath)) {
+        response->in_error = 1;
+        response->_errno = EACCES;
+    } else {
+        int result = _fsRemove(abspath);
+        response->in_error = result < 0 ? 1 : 0;
+        response->_errno = errno;
+        *(int *)response->retval = result;
+    }
+
+    r.return_val = response;
+    r.return_size = sizeof(fs_response);
+    free(abspath);
+    return r;
+}
+
 int main(int argc, char *argv[]) {
     ROOT_PATH = argv[1];
     register_procedure("fsMount", 1, fsMount_rpc);
@@ -358,6 +383,7 @@ int main(int argc, char *argv[]) {
     register_procedure("fsClose", 1, fsClose_rpc);
     register_procedure("fsRead", 2, fsRead_rpc);
     register_procedure("fsWrite", 2, fsWrite_rpc);
+    register_procedure("fsRemove", 1, fsRemove_rpc);
     launch_server();
     return 0;
 }

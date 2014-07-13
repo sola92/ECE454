@@ -23,13 +23,17 @@
 #include "ece454_fs.h"
 #include "fs_utils.h"
 
+/**
+    TODO:
+        * what happends when you remove a mounted folder (EBUSY ?)
+        * what error should be returned if you mount an already mounted folder?
+        * remove should be allowed if requesting proc has write access
+ */
 
-// what error should be returned if you mount an already mounted folder?
-// O_CREAT causes isssues
 
 struct mount_info {
-    char ip_or_domain[250];
-    char local_folder_name[250];
+    char ip_or_domain[256];
+    char local_folder_name[256];
     unsigned int port_no;
     struct mount_info *next;
 };
@@ -316,5 +320,29 @@ int fsWrite(int fd, const void *buf, const unsigned int count) {
 }
 
 int fsRemove(const char *name) {
-    return(remove(name));
+    struct mount_info *info = mount_info_list_find(name, false);
+    if (info == NULL) {
+        errno = ENOENT;
+        return -1;
+    }
+
+    char * relpath = relative_path_from_mount_path(name, info->local_folder_name);
+
+    if (strcmp(relpath, "/") == 0) {
+        free(relpath);
+        errno = EBUSY;
+        return -1;
+    }
+
+    return_type ans = make_remote_call(info->ip_or_domain,
+                                       info->port_no, "fsRemove", 1,
+                                       strlen(relpath) + 1, (void *)relpath);
+    free(relpath);
+    fs_response *response = (fs_response *)ans.return_val;
+
+    if (!handle_possible_error(response)) {
+        return *(int *)response->retval;
+    }
+
+    return -1;
 }
