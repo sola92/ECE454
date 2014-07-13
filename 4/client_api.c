@@ -40,7 +40,7 @@ struct fd_entry {
     struct fd_entry *next;
 };
 
-struct mount_info *mount_list_head = NULL;
+struct mount_info *mount_info_list_head = NULL;
 struct fd_entry *fd_list_head = NULL;
 struct fsDirent dent; // handle this.
 
@@ -52,6 +52,14 @@ void mount_info_set_next(void *node, void *next) {
     ((struct mount_info *)node)->next = (struct mount_info *)next;
 }
 
+void mount_info_list_insert(struct mount_info *entry) {
+    list_insert((void **)&mount_info_list_head, (void *)entry, mount_info_next, mount_info_set_next);
+}
+
+void mount_info_list_delete(struct mount_info *entry) {
+    list_delete((void **)&mount_info_list_head, (void *)entry, mount_info_next, mount_info_set_next);
+}
+
 void *fd_entry_next(void *node) {
     return (void *)((struct fd_entry *)node)->next;
 }
@@ -60,9 +68,17 @@ void fd_entry_set_next(void *node, void *next) {
     ((struct fd_entry *)node)->next = (struct fd_entry *)next;
 }
 
+void fd_entry_list_insert(struct fd_entry *entry) {
+    list_insert((void **)&fd_list_head, (void *)entry, fd_entry_next, fd_entry_set_next);
+}
+
+void fd_entry_list_delete(struct fd_entry *entry) {
+    list_delete((void **)&fd_list_head, entry, fd_entry_next, fd_entry_set_next);
+}
+
 struct mount_info* mount_info_list_find(const char *folder_name, bool strict_match) {
     const int query_length = strlen(folder_name);
-    struct mount_info *current = mount_list_head;
+    struct mount_info *current = mount_info_list_head;
     int longest_length_so_far = 0;
     struct mount_info *longest_match_so_far = NULL;
     for(; current != NULL; current = current->next) {
@@ -128,7 +144,7 @@ int fsMount(const char *ip_or_domain, const unsigned int port_no, const char *lo
         strcpy(info->local_folder_name, local_folder_name);
         info->port_no = port_no;
         info->next = NULL;
-        list_insert((void **)&mount_list_head, (void *)info, mount_info_next, mount_info_set_next);
+        mount_info_list_insert(info);
         return 0;
     }
     return -1;
@@ -141,7 +157,7 @@ int fsUnmount(const char *local_folder_name) {
         return -1;
     }
 
-    list_delete((void **)&mount_list_head, (void *)info, mount_info_next, mount_info_set_next);
+    mount_info_list_delete(info);
     return 0;
 }
 
@@ -223,7 +239,7 @@ int fsOpen(const char *fname, int mode) {
         entry->fd = fd;
         entry->mount_info = info;
         entry->next = NULL;
-        list_insert((void **)&fd_list_head, (void *)entry, fd_entry_next, fd_entry_set_next);
+        fd_entry_list_insert(entry);
         return fd;
     }
 
@@ -245,7 +261,7 @@ int fsClose(int fd) {
     fs_response *response = (fs_response *)ans.return_val;
 
     if (!handle_possible_error(response)) {
-        list_delete((void **)&fd_list_head, current, fd_entry_next, fd_entry_set_next);
+        fd_entry_list_delete(current);
     }
 
     return *(int *)response->retval;
