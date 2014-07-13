@@ -10,16 +10,6 @@
 #include <string.h>
 
 #include "simplified_rpc/ece454rpc_types.h"
-/* 
- * Mahesh V. Tripunitara
- * University of Waterloo
- * A dummy implementation of the functions for the remote file
- * system. This file just implements those functions as thin
- * wrappers around invocations to the local filesystem. In this
- * way, this dummy implementation helps clarify the semantics
- * of those functions. Look up the man pages for the calls
- * such as opendir() and read() that are made here.
- */
 #include "ece454_fs.h"
 #include "fs_utils.h"
 
@@ -29,7 +19,6 @@
         * what error should be returned if you mount an already mounted folder?
         * remove should be allowed if requesting proc has write access
  */
-
 
 struct mount_info {
     char ip_or_domain[256];
@@ -136,11 +125,12 @@ char *relative_path_from_mount_path(const char *path, const char *local_folder_n
 int fsMount(const char *ip_or_domain, const unsigned int port_no, const char *local_folder_name) {
     struct mount_info *info = mount_info_list_find(local_folder_name, true);
     if (info != NULL) {
+        errno = EBUSY;
         return -1;
     }
 
     return_type ans = make_remote_call(ip_or_domain, port_no, "fsMount", 1,
-                                        strlen(local_folder_name), (void *) local_folder_name);
+                                       strlen(local_folder_name), (void *) local_folder_name);
     fs_response *response = (fs_response *)ans.return_val;
     if (!handle_possible_error(response)) {
         struct mount_info *info = (struct mount_info *) malloc(sizeof(struct mount_info));
@@ -235,7 +225,7 @@ int fsOpen(const char *fname, int mode) {
     int attempts = 0, retval;
     fs_response *response;
     do {
-        if (attempts++ > 0) { printf("sleeping for 30s\n"); sleep(30); }
+        if (attempts++ > 0) sleep(30);
         ans = make_remote_call(info->ip_or_domain,
                                info->port_no, "fsOpen", 2,
                                strlen(path) + 1, (void *) path,
