@@ -132,6 +132,7 @@ int fsMount(const char *ip_or_domain, const unsigned int port_no, const char *lo
     return_type ans = make_remote_call(ip_or_domain, port_no, "fsMount", 1,
                                        strlen(local_folder_name), (void *) local_folder_name);
     fs_response *response = (fs_response *)ans.return_val;
+    int retval = -1;
     if (!handle_possible_error(response)) {
         struct mount_info *info = (struct mount_info *) malloc(sizeof(struct mount_info));
         strcpy(info->ip_or_domain, ip_or_domain);
@@ -139,9 +140,11 @@ int fsMount(const char *ip_or_domain, const unsigned int port_no, const char *lo
         info->port_no = port_no;
         info->next = NULL;
         mount_info_list_insert(info);
-        return 0;
+        retval = 0;
     }
-    return -1;
+
+    free(response);
+    return retval;
 }
 
 int fsUnmount(const char *local_folder_name) {
@@ -162,25 +165,27 @@ FSDIR* fsOpenDir(const char *folder_name) {
         return NULL;
     }
 
-    char *relative_path = relative_path_from_mount_path(folder_name, info->local_folder_name);
-    if (relative_path == NULL) {
+    char *relpath = relative_path_from_mount_path(folder_name, info->local_folder_name);
+    if (relpath == NULL) {
         errno = ENOENT;
         return NULL;
     }
 
     return_type ans = make_remote_call(info->ip_or_domain,
                                        info->port_no, "fsOpenDir", 1,
-                                       strlen(relative_path) + 1, (void *) relative_path);
-    free(relative_path);
-    fs_response *response = (fs_response *)ans.return_val;
+                                       strlen(relpath) + 1, (void *) relpath);
 
+    fs_response *response = (fs_response *)ans.return_val;
+    FSDIR *fsdirp = NULL;
     if (!handle_possible_error(response)) {
-        FSDIR *fsdirp = (FSDIR *)malloc(sizeof(FSDIR));
+        fsdirp = (FSDIR *)malloc(sizeof(FSDIR));
         fsdirp->dirp = *(DIR **)response->retval;
         fsdirp->mount_info = info;
-        return fsdirp;
     }
-    return NULL;
+
+    free(relpath);
+    free(response);
+    return fsdirp;
 }
 
 int fsCloseDir(FSDIR *fsdirp) {
@@ -189,11 +194,13 @@ int fsCloseDir(FSDIR *fsdirp) {
                                        sizeof(DIR *), (void *) &fsdirp->dirp);
 
     fs_response *response = (fs_response *)ans.return_val;
+    int retval = *(int *)response->retval;
     if (!handle_possible_error(response)) {
         free(fsdirp);
     }
 
-    return *(int *)response->retval;
+    free(response);
+    return retval;
 }
 
 struct fsDirent *fsReadDir(FSDIR *fsdirp) {
@@ -202,10 +209,14 @@ struct fsDirent *fsReadDir(FSDIR *fsdirp) {
                                        sizeof(DIR *), (void *) &fsdirp->dirp);
 
     fs_response *response = (fs_response *)ans.return_val;
+    struct fsDirent *retval = NULL;
     if (!handle_possible_error(response)) {
-        return (struct fsDirent *)response->retval;
+        dent = *(struct fsDirent *)response->retval;
+        retval = &dent;
     }
-    return NULL;
+
+    free(response);
+    return retval;
 }
 
 int fsOpen(const char *fname, int mode) {
@@ -233,7 +244,7 @@ int fsOpen(const char *fname, int mode) {
         response = (fs_response *)ans.return_val;
     } while (*(int *)response->retval == FS_OPEN_WAIT_MSG);
 
-    free(path);
+
     int fd = *(int *)response->retval;
     if (!handle_possible_error(response)) {
         struct fd_entry *entry = (struct fd_entry *)malloc(sizeof(struct fd_entry));
@@ -241,10 +252,11 @@ int fsOpen(const char *fname, int mode) {
         entry->mount_info = info;
         entry->next = NULL;
         fd_entry_list_insert(entry);
-        return fd;
     }
 
-    return -1;
+    free(path);
+    free(response);
+    return fd;
 }
 
 int fsClose(int fd) {
@@ -265,7 +277,9 @@ int fsClose(int fd) {
         fd_entry_list_delete(current);
     }
 
-    return *(int *)response->retval;
+    int retval = *(int *)response->retval;
+    free(response);
+    return retval;
 }
 
 int fsRead(int fd, void *buf, const unsigned int count) {
@@ -285,11 +299,13 @@ int fsRead(int fd, void *buf, const unsigned int count) {
     if (inerror) {
         int _errno = *(int *)(ans.return_val + sizeof(int));
         errno = _errno;
+        free(ans.return_val);
         return -1;
     }
 
     int bytesread = *(int *)(ans.return_val + (2 * sizeof(int)));
     memcpy(buf, ans.return_val + (3 * sizeof(int)), bytesread);
+    free(ans.return_val);
     return bytesread;
 }
 
@@ -307,13 +323,10 @@ int fsWrite(int fd, const void *buf, const unsigned int count) {
                                        count, (void *) buf);
 
     fs_response *response = (fs_response *)ans.return_val;
-
-    if (!handle_possible_error(response)) {
-        int byteswritten = *(int *)response->retval;
-        return byteswritten;
-    }
-
-    return -1;
+    int retval = *(int *)response->retval;
+    handle_possible_error(response);
+    free(response);
+    return retval;
 }
 
 int fsRemove(const char *name) {
@@ -334,12 +347,12 @@ int fsRemove(const char *name) {
     return_type ans = make_remote_call(info->ip_or_domain,
                                        info->port_no, "fsRemove", 1,
                                        strlen(relpath) + 1, (void *)relpath);
-    free(relpath);
     fs_response *response = (fs_response *)ans.return_val;
 
-    if (!handle_possible_error(response)) {
-        return *(int *)response->retval;
-    }
+    int retval = *(int *)response->retval;
+    handle_possible_error(response);
 
-    return -1;
+    free(relpath);
+    free(response);
+    return retval;
 }

@@ -361,6 +361,7 @@ return_type fsRemove_rpc(const int nparams, arg_type* a) {
     if (is_file_open(abspath)) {
         response->in_error = 1;
         response->_errno = EACCES;
+        *(int *)response->retval = -1;
     } else {
         int result = _fsRemove(abspath);
         response->in_error = result < 0 ? 1 : 0;
