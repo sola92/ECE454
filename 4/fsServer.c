@@ -377,15 +377,15 @@ return_type fsRemove_rpc(const int nparams, arg_type* a) {
 
 int main(int argc, char *argv[]) {
     ROOT_PATH = argv[1];
-    register_procedure("fsMount", 1, fsMount_rpc);
-    register_procedure("fsOpenDir", 1, fsOpenDir_rpc);
-    register_procedure("fsCloseDir", 1, fsCloseDir_rpc);
-    register_procedure("fsReadDir", 1, fsReadDir_rpc);
+    register_procedure("fsRead", 2, fsRead_rpc);
     register_procedure("fsOpen", 2, fsOpen_rpc);
     register_procedure("fsClose", 1, fsClose_rpc);
-    register_procedure("fsRead", 2, fsRead_rpc);
     register_procedure("fsWrite", 2, fsWrite_rpc);
+    register_procedure("fsMount", 1, fsMount_rpc);
     register_procedure("fsRemove", 1, fsRemove_rpc);
+    register_procedure("fsReadDir", 1, fsReadDir_rpc);
+    register_procedure("fsOpenDir", 1, fsOpenDir_rpc);
+    register_procedure("fsCloseDir", 1, fsCloseDir_rpc);
     launch_server();
     return 0;
 }
