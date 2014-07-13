@@ -10,26 +10,77 @@
 
 #include "simplified_rpc/ece454rpc_types.h"
 #include "ece454_fs.h"
+#include "fs_utils.h"
 
 #if 0
 #define _DEBUG_1_
 #endif
 
+struct file_status {
+    char path[512];
+    int fd;
+    int mode;
+    struct file_status *next;
+};
 
+struct file_status *file_status_list_head = NULL;
 struct fsDirent dent;
-char *root_directory;
+char *ROOT_PATH;
+return_type r;
 
-char* concat(char *s1, char *s2)
-{
-    size_t len1 = strlen(s1);
-    size_t len2 = strlen(s2);
-    char *result = malloc(len1+len2+1);
-    memcpy(result, s1, len1);
-    memcpy(result+len1, s2, len2+1);
-    return result;
+void *file_status_next(void *node) {
+    return (void *)((struct file_status *)node)->next;
 }
 
-extern int _fsMount(const char *srvIpOrDomName, const unsigned int srvPort, const char *localFolderName) {
+void file_status_set_next(void *node, void *next) {
+    ((struct file_status *)node)->next = (struct file_status *)next;
+}
+
+void file_status_list_insert(struct file_status *entry) {
+    list_insert((void **)&file_status_list_head, (void *)entry, file_status_next, file_status_set_next);
+}
+
+void file_status_list_delete(struct file_status *entry) {
+    list_delete((void **)&file_status_list_head, (void *)entry, file_status_next, file_status_set_next);
+}
+
+int file_status_list_size() {
+    return list_size((void *)file_status_list_head, file_status_next);
+}
+
+struct file_status *file_status_list_find(void *crit, bool bypath) {
+    struct file_status *current = file_status_list_head;
+    for(; current != NULL; current = current->next) {
+        if (bypath && strcmp((char *)crit, current->path) == 0)
+            return current;
+        if (!bypath && *(int *)crit == current->fd)
+            return current;
+    }
+    return NULL;
+}
+
+struct file_status *file_status_list_find_by_path(char *fpath) {
+    return file_status_list_find((void *)fpath, true);
+}
+
+struct file_status *file_status_list_find_by_fd(int fd) {
+    return file_status_list_find((void *)&fd, false);
+}
+
+bool is_file_open(char *fpath) {
+    return file_status_list_find_by_path(fpath) != NULL;
+}
+
+bool is_file_open_for_writing(char *fpath) {
+    struct file_status *current = file_status_list_head;
+    for(; current != NULL; current = current->next) {
+        if (strcmp(fpath, current->path) == 0 && current->mode == 1)
+            return true;
+    }
+    return false;
+}
+
+int _fsMount(const char *srvIpOrDomName, const unsigned int srvPort, const char *localFolderName) {
     struct stat sbuf;
     return stat(localFolderName, &sbuf);
 }
@@ -73,10 +124,10 @@ int _fsOpen(const char *fname, int mode) {
     int flags = -1;
 
     if(mode == 0) {
-    flags = O_RDONLY;
+        flags = O_RDONLY;
     }
     else if(mode == 1) {
-    flags = O_WRONLY | O_CREAT;
+        flags = O_WRONLY | O_CREAT;
     }
 
     return(open(fname, flags, S_IRWXU));
@@ -97,9 +148,6 @@ int _fsWrite(int fd, const void *buf, const unsigned int count) {
 int _fsRemove(const char *name) {
     return(remove(name));
 }
-
-
-return_type r;
 
 return_type fsMount_rpc(const int nparams, arg_type* a) {
     if(nparams != 1) {
@@ -129,7 +177,7 @@ return_type fsOpenDir_rpc(const int nparams, arg_type* a) {
     }
 
     char *folderpath = (char *) a->arg_val;
-    char *abspath = concat(root_directory, folderpath);
+    char *abspath = concat(ROOT_PATH, folderpath);
     printf("%s\n", abspath);
     DIR* result = _fsOpenDir(abspath);
     free(abspath);
@@ -194,19 +242,37 @@ return_type fsOpen_rpc(const int nparams, arg_type* a) {
         return r;
     }
 
-    char *abspath = concat(root_directory, (char *)a->arg_val);
-    int flags = *(int *)a->next->arg_val;
-    int fd = _fsOpen(abspath, flags);
-    printf("path: %s res: %d\n", abspath, fd);
-    free(abspath);
-
     fs_response *response = (fs_response *) malloc(sizeof(fs_response));
-    response->in_error = fd < 0 ? 1 : 0;
-    response->_errno = errno;
-    *(int *)response->retval = fd;
+
+    char *abspath = concat(ROOT_PATH, (char *)a->arg_val);
+    int mode = *(int *)a->next->arg_val;
+    if (is_file_open_for_writing(abspath) || (mode == 1 && is_file_open(abspath))) {
+        response->in_error = 1;
+        response->_errno = EACCES;
+    } else {
+        int fd = _fsOpen(abspath, mode);
+
+        printf("path: %s res: %d\n", abspath, fd);
+
+        response->in_error = fd < 0 ? 1 : 0;
+        response->_errno = errno;
+        *(int *)response->retval = fd;
+
+        if (!response->in_error) {
+            struct file_status *entry = (struct file_status *)malloc(sizeof(struct file_status));
+            strcpy(entry->path, abspath);
+            entry->mode = mode;
+            entry->fd = fd;
+            entry->next = NULL;
+            file_status_list_insert(entry);
+            printf("size: %d\n", file_status_list_size());
+        }
+    }
 
     r.return_val = response;
     r.return_size = sizeof(fs_response);
+
+    free(abspath);
     return r;
 }
 
@@ -225,6 +291,11 @@ return_type fsClose_rpc(const int nparams, arg_type* a) {
     response->in_error = result < 0 ? 1 : 0;
     response->_errno = errno;
     *(int *)response->retval = result;
+
+    struct file_status *stat;
+    if ((stat = file_status_list_find_by_fd(fd)) != NULL) {
+        file_status_list_delete(stat);
+    }
 
     r.return_val = response;
     r.return_size = sizeof(fs_response);
@@ -278,7 +349,7 @@ return_type fsWrite_rpc(const int nparams, arg_type* a) {
 }
 
 int main(int argc, char *argv[]) {
-    root_directory = argv[1];
+    ROOT_PATH = argv[1];
     register_procedure("fsMount", 1, fsMount_rpc);
     register_procedure("fsOpenDir", 1, fsOpenDir_rpc);
     register_procedure("fsCloseDir", 1, fsCloseDir_rpc);

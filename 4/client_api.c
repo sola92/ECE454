@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <errno.h>
+#include <string.h>
 
 #include "simplified_rpc/ece454rpc_types.h"
 /* 
@@ -20,11 +21,18 @@
  * such as opendir() and read() that are made here.
  */
 #include "ece454_fs.h"
-#include <string.h>
+#include "fs_utils.h"
+
 
 // what error should be returned if you mount an already mounted folder?
-// read after a close still reads
 // O_CREAT causes isssues
+
+struct mount_info {
+    char ip_or_domain[250];
+    char local_folder_name[250];
+    unsigned int port_no;
+    struct mount_info *next;
+};
 
 struct fd_entry {
     int fd;
@@ -35,7 +43,6 @@ struct fd_entry {
 struct mount_info *mount_list_head = NULL;
 struct fd_entry *fd_list_head = NULL;
 struct fsDirent dent; // handle this.
-
 
 void *mount_info_next(void *node) {
     return (void *)((struct mount_info *)node)->next;
@@ -51,36 +58,6 @@ void *fd_entry_next(void *node) {
 
 void fd_entry_set_next(void *node, void *next) {
     ((struct fd_entry *)node)->next = (struct fd_entry *)next;
-}
-
-int list_size(void *head, void *(next)(void *)) {
-    int size = 0;
-    void *current = head;
-    for(; current != NULL; current = next(current), size++);
-    return size;
-}
-
-void list_delete(void **head, void *node, void *(next)(void *), void(set_next)(void *, void *)) {
-    if (node == *head) {
-        *head = next(head);
-    } else {
-        void *current = *head;
-        for(; next(current) != node; current = next(current));
-        set_next(current, next(node));
-    }
-
-    free(node);
-}
-
-void list_insert(void **head, void *new, void *(next)(void *), void(set_next)(void *, void *)) {
-    if (*head == NULL) {
-        *head = new;
-        return;
-    }
-
-    void *current = *head;
-    for(; next(current) != NULL; current = next(current));
-    set_next(current, new);
 }
 
 struct mount_info* mount_info_list_find(const char *folder_name, bool strict_match) {
@@ -234,17 +211,11 @@ int fsOpen(const char *fname, int mode) {
         return -1;
     }
 
-    int flags = -1;
-    if (mode == 0) {
-        flags = O_RDONLY;
-    } else if(mode == 1) {
-        flags = O_WRONLY;// | O_CREAT;
-    }
-
     return_type ans = make_remote_call(info->ip_or_domain,
                                        info->port_no, "fsOpen", 2,
                                        strlen(path) + 1, (void *) path,
-                                       sizeof(int), (void *) &flags);
+                                       sizeof(int), (void *) &mode);
+    free(path);
     fs_response *response = (fs_response *)ans.return_val;
     int fd = *(int *)response->retval;
     if (!handle_possible_error(response)) {
@@ -252,11 +223,11 @@ int fsOpen(const char *fname, int mode) {
         entry->fd = fd;
         entry->mount_info = info;
         entry->next = NULL;
-        list_insert((void *)&fd_list_head, (void *)entry, fd_entry_next, fd_entry_set_next);
+        list_insert((void **)&fd_list_head, (void *)entry, fd_entry_next, fd_entry_set_next);
+        return fd;
     }
 
-    free(path);
-    return fd;
+    return -1;
 }
 
 int fsClose(int fd) {

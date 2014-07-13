@@ -10,10 +10,19 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+
+typedef char BYTE;
+
 typedef struct {
     short int in_error;
     int _errno;
     BYTE retval[1000];
 } fs_response;
+
+typedef struct {
+    DIR *dirp;
+    struct mount_info *mount_info;
+} FSDIR;
+
 
 #endif
