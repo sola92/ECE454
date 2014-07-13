@@ -11,6 +11,8 @@
 #include <dirent.h>
 
 
+#define FS_OPEN_WAIT_MSG -2
+
 typedef char BYTE;
 
 typedef struct {

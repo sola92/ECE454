@@ -231,12 +231,19 @@ int fsOpen(const char *fname, int mode) {
         return -1;
     }
 
-    return_type ans = make_remote_call(info->ip_or_domain,
-                                       info->port_no, "fsOpen", 2,
-                                       strlen(path) + 1, (void *) path,
-                                       sizeof(int), (void *) &mode);
+    return_type ans;
+    int attempts = 0, retval;
+    fs_response *response;
+    do {
+        if (attempts++ > 0) { printf("sleeping for 30s\n"); sleep(30); }
+        ans = make_remote_call(info->ip_or_domain,
+                               info->port_no, "fsOpen", 2,
+                               strlen(path) + 1, (void *) path,
+                               sizeof(int), (void *) &mode);
+        response = (fs_response *)ans.return_val;
+    } while (*(int *)response->retval == FS_OPEN_WAIT_MSG);
+
     free(path);
-    fs_response *response = (fs_response *)ans.return_val;
     int fd = *(int *)response->retval;
     if (!handle_possible_error(response)) {
         struct fd_entry *entry = (struct fd_entry *)malloc(sizeof(struct fd_entry));
