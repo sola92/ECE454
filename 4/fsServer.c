@@ -129,7 +129,6 @@ int _fsOpen(const char *fname, int mode) {
     else if(mode == 1) {
         flags = O_WRONLY | O_CREAT;
     }
-
     return(open(fname, flags, S_IRWXU));
 }
 
@@ -178,7 +177,7 @@ return_type fsOpenDir_rpc(const int nparams, arg_type* a) {
 
     char *folderpath = (char *) a->arg_val;
     char *abspath = concat(ROOT_PATH, folderpath);
-    printf("%s\n", abspath);
+    //printf("%s\n", abspath);
     DIR* result = _fsOpenDir(abspath);
     free(abspath);
 
@@ -241,11 +240,11 @@ return_type fsOpen_rpc(const int nparams, arg_type* a) {
         r.return_size = 0;
         return r;
     }
-
     fs_response *response = (fs_response *) malloc(sizeof(fs_response));
 
     char *abspath = concat(ROOT_PATH, (char *)a->arg_val);
     int mode = *(int *)a->next->arg_val;
+
     if (is_file_open_for_writing(abspath)) {
         response->in_error = 1;
         response->_errno = EACCES;
@@ -253,7 +252,7 @@ return_type fsOpen_rpc(const int nparams, arg_type* a) {
     } else {
         int fd = _fsOpen(abspath, mode);
 
-        printf("path: %s res: %d\n", abspath, fd);
+        //printf("path: %s res: %d\n", abspath, fd);
 
         response->in_error = fd < 0 ? 1 : 0;
         response->_errno = errno;
@@ -266,7 +265,6 @@ return_type fsOpen_rpc(const int nparams, arg_type* a) {
             entry->fd = fd;
             entry->next = NULL;
             file_status_list_insert(entry);
-            printf("size: %d\n", file_status_list_size());
         }
     }
 

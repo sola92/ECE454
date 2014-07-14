@@ -35,7 +35,7 @@ struct fd_entry {
 
 struct mount_info *mount_info_list_head = NULL;
 struct fd_entry *fd_list_head = NULL;
-struct fsDirent dent; // handle this.
+struct fsDirent dent;
 
 void *mount_info_next(void *node) {
     return (void *)((struct mount_info *)node)->next;
@@ -110,14 +110,9 @@ char *relative_path_from_mount_path(const char *path, const char *local_folder_n
     } else {
         const int slash_index = strlen(local_folder_name);
         const int path_length = strlen(path);
-        if (*(path + slash_index) == '/') {
-            printf("%s \n", local_folder_name + slash_index);
-            relpath = (char *)malloc(path_length - slash_index + 1);
-            strcpy((char *)relpath, path + slash_index);
-        } else {
-            errno = ENOENT;
-            relpath = NULL;
-        }
+        printf("%s \n", local_folder_name + slash_index);
+        relpath = (char *)malloc(path_length - slash_index + 1);
+        strcpy((char *)relpath, path + slash_index);
     }
     return relpath;
 }
@@ -227,6 +222,7 @@ int fsOpen(const char *fname, int mode) {
     }
 
     char *path = relative_path_from_mount_path(fname, info->local_folder_name);
+    printf("relpath: %s\n", path);
     if (path == NULL) {
         errno = ENOENT;
         return -1;

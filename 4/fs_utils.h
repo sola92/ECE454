@@ -10,7 +10,7 @@ int list_size(void *head, void *(next)(void *)) {
 
 void list_delete(void **head, void *node, void *(next)(void *), void(set_next)(void *, void *)) {
     if (node == *head) {
-        *head = next(head);
+        *head = next(*head);
     } else {
         void *current = *head;
         for(; next(current) != node; current = next(current));
