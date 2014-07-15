@@ -245,7 +245,7 @@ return_type fsOpen_rpc(const int nparams, arg_type* a) {
     char *abspath = concat(ROOT_PATH, (char *)a->arg_val);
     int mode = *(int *)a->next->arg_val;
 
-    if (is_file_open_for_writing(abspath)) {
+    if (is_file_open(abspath)) {
         response->in_error = 1;
         response->_errno = EACCES;
         *(int *)response->retval = FS_OPEN_WAIT_MSG;
