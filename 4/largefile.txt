@@ -1,0 +1,242 @@
+UNIVERSITY OF WATERLOO
+Faculty of Engineering
+Department of Electrical and Computer Engineering
+Smart Mower Detailed Design & Project Timeline
+Date: July 3 2014
+Group Number: 2015.047
+Members: Usha Shanthikumar (20372712)
+Jvalant Dave (20386078) Olusola Ogunsakin (20382648) Jason Rajasegaram (20378247)
+Consultant: Steven Waslander
+Table of Contents
+List of Figures ................................................................................................................................. 3 List of Tables .................................................................................................................................. 4 1.0 High-Level Description of Project............................................................................................ 5
+1.1 Motivation ............................................................................................................................. 5 1.2 Project Objective ................................................................................................................... 5 1.3 Block Diagram ...................................................................................................................... 6
+2.0 High-Level Description of Project............................................................................................ 8 2.1 Functional Specifications ...................................................................................................... 8 2.2 Non-Functional Specifications .............................................................................................. 9
+3.0 Detailed Design....................................................................................................................... 10 3.1 Microcontroller.................................................................................................................... 10 3.2 Sensors ................................................................................................................................ 13
+3.2.1 Sonar Sensors ............................................................................................................... 13 3.2.2 Magnetometer ............................................................................................................... 14 3.2.3 Infrared Sensor ............................................................................................................. 14
+3.3 Image Processing System.................................................................................................... 16 3.4 Chassis................................................................................................................................. 18 3.5 Grass Cutting Mechanism ................................................................................................... 20 3.6 Smart Phone Application .................................................................................................... 20 3.7 Safety................................................................................................................................... 24
+4.0 Discussion and Project Timeline ............................................................................................ 25 4.1 Discussion on Design .......................................................................................................... 25 4.2 Project Timeline .................................................................................................................. 27
+References..................................................................................................................................... 29
+List of Figures
+Figure 1: Smart Mower Block Diagram ......................................................................................... 6 Figure 2: Microcontroller Connection Schematic......................................................................... 11 Figure 3: ATmega328p MCU pinout ........................................................................................... 12 Figure 4: Sonar Sensor Wiring Diagram ...................................................................................... 13 Figure 5: IR Sensor Object Detection .......................................................................................... 15 Figure 6: Voltage Output vs Distance for IR Sensor ................................................................... 15 Figure 7: IR Sensor Wiring Diagram............................................................................................ 16 Figure 8: Plotted Training Set....................................................................................................... 17 Figure 9: Plotted Training Set with Hyperplane ........................................................................... 18 Figure 10: Chassis......................................................................................................................... 19 Figure 11: Encoder Timing Diagram ........................................................................................... 20 Figure 12: UML Diagram ............................................................................................................. 21 Figure 13: Software Architecture.................................................................................................. 22 Figure 14: Smartphone App Home Screen ................................................................................... 22 Figure 15: Smartphone App Manual Control Screen ................................................................... 23 Figure 16: Project Gantt Chart...................................................................................................... 28
+List of Tables
+Table 1: Functional Specifications................................................................................................. 8 Table 2: Non-Functional Specifications ......................................................................................... 9 Table 3: Smart Mower Project Timeline ...................................................................................... 27
+1.0 High-Level Description of Project 1.1 Motivation
+Lawnmowers have not significantly changed since their introduction in 1827; however, they’ve become an important part of the modern North American household. Approximately 86% of all homeowners have a lawnmower [1]. Modern day lawnmowers require a person to push the mower across the lawn. This is particularly disadvantageous for disabled individuals and the elderly, who account for 14% of the Canadian population [2]. Existing lawnmowers that require a user for operation result in a lot of accidents. In the US alone, lawnmowers are the leading cause of amputations for children under 10 [3]. Autonomous lawnmowers that are currently in the market are not able to differentiate between grass and pavement; instead, they use wires to define boundaries so the robot knows where to cut.
+1.2 Project Objective
+The objective of this project is to design an autonomous electric lawnmower that is safe and battery- powered, and that can differentiate between grass and pavement without the use of any perimeter wires. The mower will have the ability to be manually controlled through a Smart Phone Application. The Smart Phone Application’s integrated timer allows users to set a lawn mowing schedule so that the mower automatically mows the lawn at the user’s preference.
+1.3 Block Diagram
+The overall diagram in Figure 1 outlines the major connections between each subsystem. The image processing system, sensors, chassis and grass cutting mechanism are the four main subsystems of the design.
+￼Image Processing (D) SW (ND) HW
+￼￼Camera (ND)
+Camera (ND)
+￼Laptop (D) SW
+￼Smartphone App (D)
+￼￼Bluetooth Connection (ND)
+Legend:
+D = Designing
+ND = Not Designing HW = Hardware SW = Software
+￼￼￼￼￼USB to Serial Connection (ND)
+￼Sensors (ND)
+￼￼￼Sonar (ND)
+Infrared (ND)
+￼￼Microcontroller (D) SW
+Battery (ND)
+￼￼￼￼￼Magnetometer (ND)
+￼￼Charging dock (D) Non-essential HW
+￼￼￼Chassis (ND)
+￼￼Encoders (ND)
+Wheels (ND)
+￼￼￼￼￼￼￼Motors (ND)
+Battery (ND)
+￼￼￼￼Cutting Grass (ND)
+￼Grass Cutting Blade (ND)
+￼￼Motors (ND)
+￼Figure 1: Smart Mower Block Diagram
+Emergency Stop Circuitry (D)
+The first subsystem is the image processing system. The lawnmower will have two cameras: one facing straight down in front of the lawnmower and one facing backward, feeding a view of the terrain to the laptop, along with a view for reversing. These images will be processed to detect the objects in the lawnmower’s path and then the laptop sends signals to the microcontroller dictating which direction the mower should go.
+The second subsystem contains three essential sensors. The sonar sensor scans the perimeter of the lawnmower, based on the proximity of obstacles; it allows the mower to determine when to avoid obstructions. The infrared sensors will also be used to check proximity, but for objects that are much greater such as people walking in front of the lawnmower or a fence. The magnetometer will be used to give the mower a sense of direction, allowing it to make straight, appealing and well-aligned cuts. These four sensors send their input to the micro-controller so that a decision can be made on the motion of the lawnmower. Finally, the rain sensor is a non-essential function and an optional sensor that determines if the lawn can be mowed in the current weather.
+The third subsystem is the metal frame chassis which contains six wheels controlled by two motors. The two motors are powered by a 12 V battery that is connected to an emergency stop switch for safety purposes. The chassis contains two rotary encoders, one for each set of wheel. Each rotary controller connects to the microcontroller, communicating the position and speed of the wheels to the microcontroller.
+The fourth subsystem is the lawnmower’s ability to cut grass. With the inputs from the sensors and the laptop, the microcontroller will make a decision to continuously driver further and have the blade continuously rotate or stop and maneuver around objects in front of it.
+The full system is powered by two 12 V batteries. There is also an optional charging dock that will charge the lawnmower, but is a non-essential functionality.
+2.0 Project Specifications
+2.1 Functional Specifications
+The functional specifications of the Smart Mower are outline in Table 1 below. These requirements describe the operation and behavior of the system and deals with what the main system is designed to do.
+Table 1: Functional Specifications
+￼￼￼￼Name
+￼￼￼￼￼Measure
+￼￼￼Functional Specifications
+￼￼￼￼￼Priority
+￼￼￼￼Movement Operation
+￼￼￼Demonstration
+￼￼Smart Mower must be able to move in all directions on flat land, with grass that’s a maximum height of 15 cm.
+￼￼￼Essential
+￼￼￼￼Motion Planning Algorithm
+￼Demonstration
+Smart Mower’s motion planning algorithm must maneuver through the grass with a maximum slope of 10 degrees and around static obstacles that have dimensions of 30 cm by 20 cm by 20 cm.
+￼￼Essential
+￼￼￼￼Object Detection
+￼￼￼Measurement
+￼Smart Mower’s sonar sensors must be able to detect objects within 30 cm, with 5 cm accuracy.
+￼￼￼￼Essential
+￼￼￼￼Safety Override
+￼￼￼Demonstration
+￼Smart Mower must turn off if the wheels are off the grass as a safety precaution.
+￼￼￼￼Essential
+￼￼￼￼Battery Life
+￼￼￼￼￼Measurement
+￼￼￼The battery should last a minimum of 30 min.
+￼￼￼￼￼Essential
+￼￼￼￼Image processing
+￼Demonstration
+Smart Mower must have an image processing system to detect static objects with minimum dimensions of 30 cm by 20 cm by 20 cm (i.e. soccer ball).
+￼￼Essential
+￼￼￼￼User Input
+￼￼￼Demonstration
+￼The Smartphone App should be able to control the drive motors and rotary motors enabling the mower to move through the grass and cut the lawn.
+￼￼￼￼Essential
+￼￼￼￼Blade Torque
+￼￼￼Measurement
+￼Smart Mower’s microcontroller will control the rotary blade which must be able to cut grass to a minimum length of 5 cm.
+￼￼￼￼Non-essential
+￼￼￼￼Blade RPM
+￼￼￼￼￼Measurement
+￼￼￼The blade should be able to spin at a minimum of 500 revolutions per minute in order to cut the grass fast enough.
+￼￼￼￼￼Non-essential
+￼￼￼￼Motor Strength
+￼Measurement
+Smart Mower’s drive motor must be powerful enough to move the mower a maximum speed of 3 km/h
+￼￼Non-essential
+￼￼￼￼Timer Capabilities
+￼￼￼Demonstration
+￼User sets timer on the Smart Mower allowing it to follow lawn mowing schedule.
+￼￼￼￼Non-essential
+￼￼￼￼Avoiding Ledges
+￼￼￼￼￼Demonstration
+￼￼￼Smart Mower must be able to detect ledges by using its image processing system.
+￼￼￼￼￼Non-essential
+￼￼￼￼Charging Dock Navigation
+￼￼￼￼Measurement
+￼￼At 10 % battery, the Smart Mower should navigate back to the charging dock.
+￼￼￼Non-essential
+￼￼
+2.2 Non-Functional Specifications
+The non-functional specifications of the Smart Mower are outline in Table 2 below. These requirements
+describe the main characteristics of the system such as size, mass and appearance. Table 2: Non-Functional Specifications
+￼￼￼￼￼Factor
+￼￼￼￼Non-Functional Specifications
+￼￼￼￼￼Priority
+￼￼￼￼Size
+Smart Mower must not exceed 100cm wide x 100cm long x 75 cm high.
+￼￼Essential
+￼￼￼￼￼Safety
+￼Must not come into contact with humans unless user manually presses Emergency Stop Button on mower
+￼￼￼￼Essential
+￼￼￼￼￼Power
+￼￼￼￼Operate using lithium-ion battery
+￼￼￼￼￼Essential
+￼￼￼￼Weight
+Smart Mower must weigh less than 200 pounds.
+￼￼Non-essential
+￼￼￼￼￼Reliability
+￼￼Ability to maneuver through uneven lawns.
+￼￼￼￼￼Non-essential
+3.0 Detailed Design
+The Smart Mower will be tested on a basic rectangular lawn of 10 m by 15 m and a border of non-grass of width 0.3 m surrounding it. The lawn will have two to three static obstacles that the mower will have to maneuver around. For the final prototype presentation a moving object will be placed on the basic lawn as a non-essential functionality. The moving object will test how well the mower will be able to detect the object and whether or not it can stop moving.
+Smart Mower has been divided into four major blocks: microcontroller, sensors, image processing system and grass cutting mechanism. A detailed description and analysis of each of these four blocks can be outlined below.
+3.1 Microcontroller
+With all the peripherals used to sense and move the autonomous lawnmower, a microcontroller unit (MCU) is needed to make the most important decisions. The microcontroller is the central component of the full system, as it will be controlling the activity of the lawnmower. The infrared sensor, sonar sensors, magnetometer, motor controller and laptop will be connected to the microcontroller through a USB-serial connection. This connection exists through the development board which is used to program the device. The data collected will allow the microcontroller to determine the proximity of objects and whether or not the mower will be continuing on its path. Based on the data obtained, a signal will be sent to the motor controller, which will direct the drive motors to steer forward, backward or start a turn sequence. The direction and speed of the drive motors and motor controllers will be determined by the microcontroller, which will send current to the motors at the required voltages.
+Figure 2 is a schematic of how each component will be connected to the microcontroller. The microcontroller that will ideally fit the system will contain an analog to digital converter (ADC) and a pulse width modulator (PWM). These two features will allow for effective analysis from the infrared and sonar sensors and allow for simple control over both the rotary and drive motors. Figure 3 illustrates the pinout of the ATmega328p microcontroller that will be used.
+￼Figure 2: Microcontroller Connection Schematic
+The ATmega328p satisfies the project specifications which concern controlling the movement of the lawnmower to avoid objects and to cut the lawn. All sensors are connected to the microcontroller as shown in Figure 2 and their data is analyzed to make decisions on the movement of the mower. The microcontroller also instructs the motor controller to move in specific directions depending on the information gathered from the sensors. The microcontroller also controls the rotary motor that’s connected to the blades that cut the grass.
+Initially, a PIC24F32KA301 16-bit microcontroller with 24 I/O pins, manufactured by Microchip was used. It contained modules for PWM and ADC. To program the microcontroller an XLP Microchip 16-bit development board was used. This required the software, MPLAB X IDE, to program the PIC. The input and outputs of the pins were initially determined. The outputs were then tested by using LEDs that would blink every two seconds. Performing simple commands using the IDE became very complicated, such as outputting print statements to the console; therefore, a more user-friendly IDE with a microcontroller that still met the necessary functional specifications was used. The Arduino Uno development board along with the ATmega328 microcontroller proved to be a more efficient tool. The Arduino was chosen as a high-level control module due to its large program memory and expanded
+functionality allowing the lawnmower to be easily controlled. This microcontroller has 14 I/O pins, ADCs and PWMs as displayed in Figure 3. The IDE is also more user-friendly which allows for easy simulations and testing.
+Figure 3: ATmega328p MCU pinout [4]
+In terms of controlling the lawnmower to maneuver around and avoid objects, a microcontroller was the best option. The decision to move from the Microchip microcontroller and development board to the Atmel microcontroller and Arduino development board was a significant design change. It allowed us to effectively design the software of the microcontroller with ease and without any complex issues. With the IDE for the Microchip we ran into issues with heaps and missing print statements. With the Arduino, issues that occurred were minuscule and did not halt the project flow.
+The sensors and microcontrollers require an input voltage that ranges from 5V to 7V to operate; thus, a decision between using a voltage divider and a more effective method was analyzed. Since a 12V battery supply is being used, a voltage divider was initially placed in order to lower the voltage; however, it was clear that a better solution to this was to use a voltage regulator. The main reason for switching from voltage divider and using resistors to a voltage regulator is that the voltage drop across a resister varies depending on current and there is power loss across the resistors. It would be more power efficient to use the voltage regulator.
+￼
+3.2 Sensors
+Robotic sensing is one of the key subsystems to the design as they give the mower sensing capabilities. The following sections will discuss in detail the three main sensors: sonar sensors, magnetometer, and infrared sensors.
+3.2.1 Sonar Sensors
+The active sonar sensors, US-020, send out pulses of inaudible sound at a distance of 0.02m to 5m, depending on where the objects is, and based on the returning sound the lawnmower will be able to determine the proximity of objects. The sound being sent must travel to the object and back to the sonar. If the time that passes is t seconds, then the following formula can be used to calculate the distance of the object.
+The sonar sensor will be connected to the PWM pin of the microcontroller, which will generate the trigger to send pulses, and to an input pin to measure the time it takes the echo to return from an object. The distance of the object infront of the lawnmower can be detected by keeping track of the time the inaudible sound is sent out to the time the echo returns. The pulse sent by the microcontroller has a width of 10 μs. This width is enough to trigger the sonar into sending eight 40 kHz pulse. Since the sonar sensor will be able to detect objects between 0.02m to 0.5m, it satisfies the functional specification of the mower being able to detect objects within 0.3 m with 5cm accuracy. Figure 4 shows a clear wiring diagram of a simple test that was used to ensure that the sonar sensor met its standards and the functional specifications.
+Figure 4: Sonar Sensor Wiring Diagram
+￼￼
+Initially, one sonar sensor was used to detect if objects were in the way. The angle of the span of the waves from a single sonar is 15 degrees. This angle proved to be too small to see all the objects within a certain range. Instead, two sonar sensors positioned equidistant from the center of the lawnmower were installed to capture a better view of the objects in the lawnmower’s path.
+3.2.2 Magnetometer
+The magnetometer is a digital compass sensor that provides navigation for the lawnmower based on the magnetic fields surrounding it. This sensor will provide the mower with a sense of direction, allowing it to make straight, well-aligned cuts. The HMC6352 Compass Module combines 2-axis magneto-resistive sensors along with the necessary digital and analog components needed for computation. The input voltage for the magnetometer ranges from 2.7 to 5 VDC once connected to the microcontroller.
+The magnetometer acts like a compass which will help with navigating the lawnmower. When doing 180 degree turns to move on to the next patch of grass, it is important that the microcontroller picks up the headings so that no patch of grass is missed while being cut. This device helps accomplish the project specification of being able to move in any direction along with being able to mow a patch of lawn correctly. The magnetometer will be mounted on top of the mower as far away as possible from the magnetic field disturbances of the drive motors and rotary motors.
+3.2.3 Infrared Sensor
+The IR Range Sensor that will be used is the GP2D12 Sharp IR Sensor. The GP2D12 sends out a light pulse that is emitted from the transmitter and has a wavelength that ranges from 850 nm ± 70 nm. When the emitted infrared light hits an object, the beam is interrupted. The returning light comes back to the receiver, which sends out a high output signal, at an angle that depends on the distance of the object that reflects the light. This process of emitting and reflecting light pulses is known as triangulation as shown in Figure 5. It detects the reflected beam angle and then allows the microcontroller to determine the distance.
+￼Figure 5: IR Sensor Object Detection [7]
+The mapping of the voltage received from the IR Sensor to the distance of an object can be displayed in Figure 6. As can be seen the maximum voltage output is about 2.6V. Using this graph a maximum distance of 10 cm was set as a threshold for objects placed in the lawnmower’s path. When the IR Sensor detects an object at a distance of 10 cm, the lawnmower will stop and make a decision on its new path around the object. The ADC in the microcontroller receives the incoming voltage and if it correlates to the threshold distance in Figure 6 then the microcontroller will know the mower has reached an object.
+Figure 6: Voltage Output vs Distance for IR Sensor [6]
+￼
+In order to test the IR sensor, the sensor was connected to the breadboard using a JST-PH Jumper 3 Wire. The ground was connected to the negative pin, power to the positive pin of the sensor. An LED was then connected to the OUT pin of the sensor. A 10kΩ resistor was connected to the other end of the LED to Ground. A 12V power supply was connected to the breadboard but with a voltage regulator the actual power being supplied was 5V. The IR Sensor was the placed near a wall to have 180 degrees of detection range. After the power supply was turned on, the sensor startup delay time was about 44ms. An individual stood at 0.5m from the sensor and the LED turned on when they reached 0.1m from the sensor. The configuration of the IR Sensor can be seen in Figure 7 below.
+Figure 7: IR Sensor Wiring Diagram
+All three of these sensors send their input to the microcontroller so that a decision can be made on the motion of the lawnmower.
+3.3 Image Processing System
+The Image Processing component will be used to detect when the mower has left the boundaries of the lawn. It will be used to detect when the mower has left the boundaries of the lawn. Computation for detecting grass will be done on a laptop due to its CPU intensive nature. The input to the laptop is the two video feeds coming from the cameras. The output of this system will be a serial cable, coming from the laptop. The pattern recognition algorithm running on the laptop will process the video feeds, frame-by- frame, and classify whether the terrain in the frame is grass or pavement. Based on the classification, it will write a STOP or GO to message to the output serial cable.
+￼￼
+A supervised learning approach was used to train our algorithm to differentiate grass. As humans, we know exactly what grass looks like; therefore, by providing training examples to the algorithm the mower will be able to detect the difference between grass and pavement. We will provide the system with numerous images, known as a training set, to train the algorithm. In the training set, each image will be represented by and . will be a vector containing features of the image that we deem important for classification. € [0, 1] will be the output variable; when = 1, the image is grass, when it is 0 the image is not grass. We will collect hundreds of images, extract their features, and manually classify them to build the training set. Figure 8 below shows an example of what the training set could look like when plotted. The blue + symbols represent grass ( = 1), the black circles represents non-grass ( = 0), and
+and are features of each image.
+Figure 8: Plotted Training Set
+The system will use the k-Nearest Neighbor (kNN) algorithm for classification. The classification algorithm will determine whether an unknown image I, which is not included in the training set, is grass or not. I will map to a point somewhere in Figure 2 based on its features. The kNN algorithm will classify I based on a majority vote of its k-Nearest Neighbors (Euclidean distance). If a majority of I’s k-Nearest Neighbors are grass, I is classified as grass; otherwise, it is classified as non-grass. An optimal k will be experimentally found. If k is too small the classification will be subject to noise. If k is too large the boundaries between the two classes will be less distinct.
+As an alternative to kNN, a Support Vector Machine (SVM) algorithm was considered for classification. The SVM will take an input, the training set and will output an
+which categorizes the input.
+￼￼optimal hyper-plane
+￼￼
+￼Figure 9: Plotted Training Set with Hyperplane
+A possible hyperplane is represented by the red line in Figure 9. Once ￼ ￼ ￼ is deduced, classifying images lying above as grass and below as not grass can easily be determined. The downside to this approach is that it assumes the existence of a hyperplane that neatly separates the two classes. This assumption is restrictive and is not the case for our problem; hence, we decided to go with the kNN algorithm. This chosen classification algorithm will be able to process frames from the input camera and classify whether the images are grass or non-grass; thus, satisfying the project specifications.
+3.4 Chassis
+The main component of the system is the chassis, which is composed of steel that is welded together and six wheels each with a diameter of 0.22m. The chassis displayed in Figure 10 was borrowed from the UW Robotics team which fit the design criteria of our project perfectly, because it was previously used as an all-terrain vehicle. The wheels have an aggressive tread in order to travel through rigorous terrain and to provide the mower with a strong base. These wheels will allow the mower to move in all directions through grass of a maximum height of 15-20 cm; thus, satisfying design constraints. The electrical components that are to be incorporated into the design will be bolted onto the chassis; in case certain components fail to operate they can be easily replaced.
+The lawnmower will have two types of motors. The first is the drive motor which drives the rear wheels and steers the lawnmower. The two 12V motors are mounted onto the chassis as shown in Figure 10. The wheels are configured such that one rear wheel is moving forward or backward while the other is
+￼￼￼￼￼
+static. This system of configuration will allow the lawnmower to maneuver easily around objects and in tight places. The second motor is a rotary motor which will be used to spin the blade.
+Figure 10: Chassis
+The Sabertooth 2X12 dual motor controller will be used as a medium to communicate between the microcontroller and the drive motors. The motor controllers are high-quality controllers rated for an output current of up to 12A. Sabertooth is a synchronous regenerative motor controller which allows the batteries to recharge whenever the mower slows down or moves in reverse direction. The motor controller has a mode in which one channel can be used to control the forward and backward movement of the lawnmower, while the other channel can be used to control the turning. Initially, this was the favorite option to control the movement of the lawnmower. However, it became clear that it would be more useful to control the motors independently because it would allow easier control when a user is using the Smartphone Application.
+The mower has two encoders that are attached to the rotary motors to measure wheel rotation. This is done so that the mower’s displacement, velocity and acceleration can be determined. The output of the encoder are two square waves and so once connected to the microcontroller, the direction and the velocity can be determined. Based on Figure 11, Signal B is shifted by a phase from signal A. If signal A is leading, then the mower is moving forward. If signal B is leading, then the mower is moving backwards. The amount of pulses can be used to calculate the velocity of the lawnmower.
+￼
+￼Figure 11: Encoder Timing Diagram [5]
+The batteries powering both the motors will also be sitting on this chassis. An emergency stop switch will be used to connect the battery to the motor controller. This decision was made in case anything goes wrong, the switch can be flipped to stop the motors from turning the wheels and from turning the blade. An emergency stop circuitry is always necessary incase all else methods fail.
+3.5 Grass Cutting Mechanism
+This subsystem consists of a rotary motor that is attached to the mower’s blade. The rotary blades will be used from an existing lawnmower deck. The chassis is also included in the grass cutting mechanism subsystem. It is comprised of blades that are controlled by a rotary motor. Whenever the grass is to be cut, the microcontroller signals the motor controller connected to the motor that starts the revolutions of the blade. The blade is to be spun at an RPM that is sufficient to cut grass properly. The RPM is relative to the amount of voltage supplied to the motor. The grass cutting mechanism satisfies the project specifications because it is responsible for cutting the lawn. It will be placed at about 0.05 to 0.15 m above the ground which meets the specifications of cutting grass to a minimum length of 0.05 m. The RPM can also be controlled through the motor controller which meets the specifications of have an RPM of 500.
+3.6 Smart Phone Application
+The user will be able to perform 4 major tasks with the smartphone application: start an autonomous job, schedule an autonomous job, start a manually session and issue an emergency stop. The
+Universal Modelling Language (UML) diagram in Figure 12 gives an abstract view of the overall user flow.
+Figure 12: UML Diagram
+The application itself will be written in Java and will be compatible with an Android device, whether it is a phone or a tablet. It is required that the device running the application have Bluetooth compatibility as the app will use this functionality to communicate with a Bluetooth module that is connected to the microcontroller. Bluetooth was favored over Wi-Fi due to the ease of integration. Wi-Fi communication requires a Wi-Fi network which we found to be restrictive. With Bluetooth, application can communicate with the mower without any third party device. We also noted that Wi-Fi would expose the mower to potential hijack attacks from the internet. Bluetooth however, is peer-to-peer and does not have this issue.
+On the software architecture side, the UML diagram in Figure 13 shows the design of the application. The application will launch into the MainActivity class. The MainActivity class is responsible for initializing the application. It will initialize the Bluetooth Service and instruct it to connect to the nearest mower. The Bluetooth Service module is responsible for communicating with the mower. We decided to dedicate a special thread to this module due to its I/O intensive nature; this approach will allow the main application thread to focus in responding to touch events. MainActivity will also show the home screen.
+￼
+￼Figure 13: Software Architecture
+On the home screen the user will encounter a view similar to the one in Figure 14, and will have four options: Start Mower, Manual Control, Scheduler, and Emergency Stop. If the user taps Start Mower, MainActivity will call BluetoothService.issueStartCommand. This will send a message to the device over the Bluetooth connection. Messages over Bluetooth will be encoded in JSON format. We considered using XML but agreed that the computational cost of parsing it on a relatively weak microcontroller would lead to high latency and a slow user experience. JSON on the other hand, is much cheaper to parse.
+Figure 14: Smartphone App Home Screen
+￼
+If the user taps Manual Control, MainActivity will launch the ManualJobActivity. This module will display a view similar to the one in Figure 15 below.
+Figure 15: Smartphone App Manual Control Screen
+This virtual joystick UI will allow the user to control the mower right from their phone. ManualJobActivity will listen for gestures from the user; based on these gestures, it will determine what direction to steer the mower in. To steer to mower, it will call BluetoothService.issueSteerCommand (angle: Float, velocity: Float). The angle parameter tells the mower what angle to go in. The velocity parameter tells the mower what fraction of its maximum velocity it should travel at.
+If the user taps Scheduler, MainActivity will launch the JobSchedulerActivity. This module will display a UI that will allow the user to pick a time and date they’d like the lawn to be mowed. After the user input is collected, JobSchedulerActivity will register the job with the JobSchedulerService. Similar to the Bluetooth service, JobSchedulerService will run on a thread of its own. This was done to allow the service to operate even when the app is closed. The service maintains a list of pending jobs. Whenever it is time for a job to run, the service will send a message to the mower via the Bluetooth connection. This approach requires that the phone be turned on and that the Bluetooth functionality be enabled at the time the job is ready. This is a disadvantage to our design and it is one that we envision changing before building the prototype.
+If the user taps Emergency Stop, MainActivity will send a message to the mower instructing it to power
+￼
+off. This should disconnect the power supply from the microcontroller and blades. We aim to have a total latency of no more than 2 seconds for this procedure.
+3.7 Safety
+As safety is one of the most important concerns for this project, a few safety features have been set to ensure the Smart Mower is as safe as possible. Firstly, the mower will have a maximum speed of 10mph. Emergency Stop button will be installed on the mower itself and the mower will cease to stop in less than 3 seconds and 1 meter in distance. The Smart Phone Application will also have an Emergency Stop button that can be controlled by the user. The user must be within 10m of the Mower from all directions in order for the manual Emergency Stop to be activated.
+4.0 Discussion and Project Timeline
+4.1 Discussion on Design
+Each group member has put in a considerable amount of hours so far. Based on each member’s
+design log, Jvalant has put in 35.5 hours, Jason has put in 41 hours, Sola has put in 31.5 hours and Usha has put in 49.5 hours.
+Upper-year engineering knowledge that is being used includes artificial intelligence, digital and analog communication, embedded microprocessor systems, electronic devices and analog control systems. In the image processing system, artificial intelligence theory was used to design machine learning models for differentiating grass and pavement. Upper-year knowledge was used to connect various peripherals to the microcontroller and to structure the embedded system software in a way that reduces latency of the overall system.
+Our design satisfies all the essential design specifications. The specific sensors chosen aid in finding obstacles in the path of the mower. The cameras and image processing used will negate the need of boundary wires to avoid edges and fences. The components chosen bring the whole mower to a system capable of cutting grass autonomously. Some of the non-essential functional specifications have not yet been satisfied. A few of the non-essential specifications that rely on mechanical components have not been tested and verified. We will determine the status of these specifications when we begin building the prototype.
+There is some novelty in the current design. The design decision to use sonar sensors (instead of infrared) to detect objects in proximity is one that is creative and new in this field of robotics. Also, the pattern recognition algorithm used to differentiate between grass and pavement are novel in that it has not been used in this area before; there will be a lot of work ahead in determining what features of the image should be extracted for use in classification. Another novel aspect to the design is the use of a magnetometer for determining direction and creating visually appealing straight lawn patterns. The sensor design is pretty novel mainly because there is only so much you can do with effectively connecting sensors together with a micro-controller. Another creative idea is the feature of scheduling lawnmower tasks. This allows for users to never having to even think about mowing their lawn since it will be done for them.
+Before building the prototype, we will need to further refine the communication protocol between the device and the smartphone app. The current specification will undoubtedly change as we consider more edge cases and add robustness to communication protocol.
+The only potential hazard is the sharp edges of the blade. In order to safely test the blade and the mower operation, we will attached a Styrofoam blade to the motors and ensure that it is safely working before attaching a real metal blade.
+4.2 Project Timeline
+Table 3: Smart Mower Project Timeline
+￼
+￼Figure 16: Project Gantt Chart
+References
+[1] Statistics Canada. “Lawn mower use, Canada and provinces.” Internet: www.statcan.gc.ca/pub/16- 002-x/2010001/article/lawnmowers-tondeuses/tbl/tbl001-eng.htm, March 24, 2010 [May 26th 2014].
+[2] Employment and Social Development Canada. “Canadians in Context - People with Disabilities.” Internet: www4.hrsdc.gc.ca/.3ndic.1t.4r@-eng.jsp?iid=40, March 26, 2014 [May 26th 2014].
+[3] Amputee Coalition. “Lawn Mower Accidents Are the Leading Cause of Major Amputations for Children Under 10.” Internet: www.amputee-coalition.org/absolutenm/anmviewer.asp?a=1206, March 24, 2010 [May 26th 2014].
+[4] Atmel, Atmel 8-bit Microcontroller with 4/8/16/32Kbytes In-System Programmable Flash., San Jose, California, 2013.
+[5] Optical Encoders, Series 63R,. LaGrange: Grayhill, Inc
+[6] Sharp Optoelectronic Device, GP2D12,. Washington: Sharp Corporation, 2005

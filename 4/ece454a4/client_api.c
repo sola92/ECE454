@@ -15,9 +15,6 @@
 
 /**
     TODO:
-        * what happends when you remove a mounted folder (EBUSY ?)
-        * what error should be returned if you mount an already mounted folder?
-        * remove should be allowed if requesting proc has write access
  */
 
 struct mount_info {

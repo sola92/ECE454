@@ -26,6 +26,7 @@ extern uint32_t getPublicIPAddr();
 extern void recvbytes(int, void *, ssize_t);
 extern void sendbytes(int, void *, ssize_t);
 
+int mybind(int sockfd, struct sockaddr_in *addr);
 /* Linked list of registered functions */
 struct fn {
     char *fname;
@@ -239,6 +240,7 @@ void launch_server() {
     }
 
     printf("%s %u\n", inet_ntoa(a.sin_addr), ntohs(a.sin_port));
+    fflush(stdout);
     
     if(listen(s, 0) < 0) {
 	perror("listen"); exit(0);
