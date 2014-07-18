@@ -14,7 +14,9 @@
 #include <netinet/ip.h>
 #include "ece454rpc_types.h"
 
-#define MSG_NOSIGNAL 0x2000
+#if __APPLE__
+    #define MSG_NOSIGNAL 0x2000
+#endif
 
 #if 0
 #define _DEBUG_1_
