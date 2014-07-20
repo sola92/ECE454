@@ -9,26 +9,11 @@
 #include <errno.h>
 #include <string.h>
 
-#include "simplified_rpc/ece454rpc_types.h"
-#include "ece454_fs.h"
-#include "fs_utils.h"
+#include "client_api.h"
 
 /**
     TODO:
  */
-
-struct mount_info {
-    char ip_or_domain[256];
-    char local_folder_name[256];
-    unsigned int port_no;
-    struct mount_info *next;
-};
-
-struct fd_entry {
-    int fd;
-    struct mount_info *mount_info;
-    struct fd_entry *next;
-};
 
 struct mount_info *mount_info_list_head = NULL;
 struct fd_entry *fd_list_head = NULL;
