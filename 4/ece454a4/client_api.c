@@ -107,7 +107,7 @@ char *relative_path_from_mount_path(const char *path, const char *local_folder_n
     } else {
         const int slash_index = strlen(local_folder_name);
         const int path_length = strlen(path);
-        printf("%s \n", local_folder_name + slash_index);
+        //printf("%s \n", local_folder_name + slash_index);
         relpath = (char *)malloc(path_length - slash_index + 1);
         strcpy((char *)relpath, path + slash_index);
     }
@@ -219,7 +219,7 @@ int fsOpen(const char *fname, int mode) {
     }
 
     char *path = relative_path_from_mount_path(fname, info->local_folder_name);
-    printf("relpath: %s\n", path);
+    //printf("relpath: %s\n", path);
     if (path == NULL) {
         errno = ENOENT;
         return -1;

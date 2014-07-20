@@ -8,24 +8,16 @@
 #include <limits.h>
 #include <string.h>
 
-#include "simplified_rpc/ece454rpc_types.h"
-#include "ece454_fs.h"
-#include "fs_utils.h"
+#include "server.h"
 
 #if 0
 #define _DEBUG_1_
 #endif
 
-struct file_status {
-    char path[512];
-    int fd;
-    int mode;
-    struct file_status *next;
-};
 
+char  *ROOT_PATH;
+struct fsDirent     dent;
 struct file_status *file_status_list_head = NULL;
-struct fsDirent dent;
-char *ROOT_PATH;
 return_type r;
 
 void *file_status_next(void *node) {
@@ -48,6 +40,14 @@ int file_status_list_size() {
     return list_size((void *)file_status_list_head, file_status_next);
 }
 
+struct file_status *file_status_list_find_by_path(char *fpath) {
+    return file_status_list_find((void *)fpath, true);
+}
+
+struct file_status *file_status_list_find_by_fd(int fd) {
+    return file_status_list_find((void *)&fd, false);
+}
+
 struct file_status *file_status_list_find(void *crit, bool bypath) {
     struct file_status *current = file_status_list_head;
     for(; current != NULL; current = current->next) {
@@ -57,14 +57,6 @@ struct file_status *file_status_list_find(void *crit, bool bypath) {
             return current;
     }
     return NULL;
-}
-
-struct file_status *file_status_list_find_by_path(char *fpath) {
-    return file_status_list_find((void *)fpath, true);
-}
-
-struct file_status *file_status_list_find_by_fd(int fd) {
-    return file_status_list_find((void *)&fd, false);
 }
 
 bool is_file_open(char *fpath) {
@@ -244,7 +236,7 @@ return_type fsOpen_rpc(const int nparams, arg_type* a) {
 
     char *abspath = concat(ROOT_PATH, (char *)a->arg_val);
     int mode = *(int *)a->next->arg_val;
-
+    printf("%s\n", abspath);
     if (is_file_open(abspath)) {
         response->in_error = 1;
         response->_errno = EACCES;
