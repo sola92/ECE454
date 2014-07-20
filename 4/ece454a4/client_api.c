@@ -229,7 +229,7 @@ int fsOpen(const char *fname, int mode) {
     int attempts = 0, retval;
     fs_response *response;
     do {
-        if (attempts++ > 0) sleep(30);
+        if (attempts++ > 0) sleep(3);
         ans = make_remote_call(info->ip_or_domain,
                                info->port_no, "fsOpen", 2,
                                strlen(path) + 1, (void *) path,

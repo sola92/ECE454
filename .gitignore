@@ -3,7 +3,5 @@
 *.a
 *.pdf
 *.zip
-fs_client*
-4/ece454a4/server
 *.sublime-project
 *.sublime-workspace
