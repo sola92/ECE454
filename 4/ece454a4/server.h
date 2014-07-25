@@ -9,6 +9,7 @@ struct file_status {
     char path[512];
     int fd;
     int mode;
+    int aliasfd;
     struct file_status *next;
 };
 
@@ -18,12 +19,15 @@ void  file_status_list_insert(struct file_status *entry);
 void  file_status_list_delete(struct file_status *entry);
 int   file_status_list_size();
 
-struct file_status *file_status_list_find(void *crit, bool bypath);
-struct file_status *file_status_list_find_by_path(char *fpath);
+struct file_status *file_status_list_find(void *crit, int mode);
 struct file_status *file_status_list_find_by_fd(int fd);
+struct file_status *file_status_list_find_by_path(char *fpath);
+struct file_status *file_status_list_find_by_alias_fd(int fd);
 
 bool is_file_open(char *fpath);
 bool is_file_open_for_writing(char *fpath);
+
+int fd_for_alias(int aliasfd);
 
 int  _fsMount(const char *srvIpOrDomName, const unsigned int srvPort, const char *localFolderName);
 int  _fsUnmount(const char *localFolderName);

@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <string.h>
+#include <time.h>
 
 #include "server.h"
 
@@ -41,19 +42,25 @@ int file_status_list_size() {
 }
 
 struct file_status *file_status_list_find_by_path(char *fpath) {
-    return file_status_list_find((void *)fpath, true);
+    return file_status_list_find((void *)fpath, 1);
 }
 
 struct file_status *file_status_list_find_by_fd(int fd) {
-    return file_status_list_find((void *)&fd, false);
+    return file_status_list_find((void *)&fd, 2);
 }
 
-struct file_status *file_status_list_find(void *crit, bool bypath) {
+struct file_status *file_status_list_find_by_alias_fd(int fd) {
+    return file_status_list_find((void *)&fd, 3);
+}
+
+struct file_status *file_status_list_find(void *crit, int mode) {
     struct file_status *current = file_status_list_head;
     for(; current != NULL; current = current->next) {
-        if (bypath && strcmp((char *)crit, current->path) == 0)
+        if (mode == 1 && strcmp((char *)crit, current->path) == 0)
             return current;
-        if (!bypath && *(int *)crit == current->fd)
+        if (mode == 2 && *(int *)crit == current->fd)
+            return current;
+        if (mode == 3 && *(int *)crit == current->aliasfd)
             return current;
     }
     return NULL;
@@ -70,6 +77,14 @@ bool is_file_open_for_writing(char *fpath) {
             return true;
     }
     return false;
+}
+
+int fd_for_alias(int aliasfd) {
+    struct file_status *stat;
+    if ((stat = file_status_list_find_by_alias_fd(aliasfd)) != NULL) {
+        return stat->fd;
+    }
+    return -1;
 }
 
 int _fsMount(const char *srvIpOrDomName, const unsigned int srvPort, const char *localFolderName) {
@@ -236,26 +251,26 @@ return_type fsOpen_rpc(const int nparams, arg_type* a) {
 
     char *abspath = concat(ROOT_PATH, (char *)a->arg_val);
     int mode = *(int *)a->next->arg_val;
-    printf("%s\n", abspath);
+    printf("%s %d\n", abspath, is_file_open(abspath));
     if (is_file_open(abspath)) {
         response->in_error = 1;
         response->_errno = EACCES;
         *(int *)response->retval = FS_OPEN_WAIT_MSG;
     } else {
-        int fd = _fsOpen(abspath, mode);
+        int realfd = _fsOpen(abspath, mode);
+        int aliasfd = realfd < 0 ? realfd : rand() % 1000;
 
-        //printf("path: %s res: %d\n", abspath, fd);
-
-        response->in_error = fd < 0 ? 1 : 0;
+        response->in_error = aliasfd < 0 ? 1 : 0;
         response->_errno = errno;
-        *(int *)response->retval = fd;
+        *(int *)response->retval = aliasfd;
 
         if (!response->in_error) {
             struct file_status *entry = (struct file_status *)malloc(sizeof(struct file_status));
             strcpy(entry->path, abspath);
-            entry->mode = mode;
-            entry->fd = fd;
+            entry->fd = realfd;
             entry->next = NULL;
+            entry->mode = mode;
+            entry->aliasfd = aliasfd;
             file_status_list_insert(entry);
         }
     }
@@ -275,7 +290,7 @@ return_type fsClose_rpc(const int nparams, arg_type* a) {
         return r;
     }
 
-    int fd = *(int *)a->arg_val;
+    int fd = fd_for_alias(*(int *)a->arg_val);
     int result = _fsClose(fd);
 
     fs_response *response = (fs_response *) malloc(sizeof(fs_response));
@@ -301,7 +316,7 @@ return_type fsRead_rpc(const int nparams, arg_type* a) {
         return r;
     }
 
-    int fd = *(int *)a->arg_val;
+    int fd = fd_for_alias(*(int *)a->arg_val);
     int count = *(int *)a->next->arg_val;
     int return_size = (3 * sizeof(int)) + count;
     void *response = malloc(return_size);
@@ -326,7 +341,7 @@ return_type fsWrite_rpc(const int nparams, arg_type* a) {
 
     fs_response *response = (fs_response *)malloc(sizeof(fs_response));
 
-    int fd = *(int *)a->arg_val;
+    int fd = fd_for_alias(*(int *)a->arg_val);
     void *wbuff = a->next->arg_val;
     int count = a->next->arg_size;
     int byteswritten = _fsWrite(fd, wbuff, count);
@@ -366,6 +381,8 @@ return_type fsRemove_rpc(const int nparams, arg_type* a) {
 }
 
 int main(int argc, char *argv[]) {
+    srand (time(NULL));
+
     register_procedure("fsRead", 2, fsRead_rpc);
     register_procedure("fsOpen", 2, fsOpen_rpc);
     register_procedure("fsClose", 1, fsClose_rpc);
