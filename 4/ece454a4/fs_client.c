@@ -1,102 +1,105 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <time.h>
 #include "ece454_fs.h"
 
 int main(int argc, char *argv[]) {
-    if(argc < 4) {
-	fprintf(stderr, "usage: %s <srv-ip/name> <srv-port> <local dir name>\n", argv[0]);
-	exit(1);
+    if (argc < 5) {
+        printf("Need: <ip1> <port1> <ip2> <port2> \n");
+        exit(1);
+    }
+    const char *ip = argv[1];
+    const int port = atoi(argv[2]);
+
+    const char *ip2 = argv[3];
+    const int port2 = atoi(argv[4]);
+    if (fsMount(ip, port, "foo") < 0) {
+        perror("fsMount"); exit(1);
     }
 
-    char *dirname = argv[3];
-    printf("fsMount(): %d\n", fsMount(argv[1], atoi(argv[2]), dirname));
-    FSDIR *fd = fsOpenDir(dirname);
-    if(fd == NULL) {
-	perror("fsOpenDir"); exit(1);
+    if (fsMount(ip, port, "foo") >= 0) {
+        printf("ERROR: Should not be able to mount the same folder twice\n");
+        exit(1);
     }
 
-    struct fsDirent *fdent = NULL;
-    for(fdent = fsReadDir(fd); fdent != NULL; fdent = fsReadDir(fd)) {
-	printf("\t %s, %d\n", fdent->entName, (int)(fdent->entType));
+    if (fsMount(ip2, port2, "foo2") < 0) {
+        perror("fsMount"); exit(1);
     }
 
-    if(errno != 0) {
-	perror("fsReadDir");
+    int fd;
+    if ((fd = fsOpen("foo/file1.txt", 0)) < 0) {
+        perror("fsOpen"); exit(1);
     }
 
-    printf("fsCloseDir(): %d\n", fsCloseDir(fd));
-
-    int ff = open("/dev/urandom", 0);
-    if(ff < 0) {
-	perror("open(/dev/urandom)"); exit(1);
-    }
-    else printf("open(): %d\n", ff);
-
-    char fname[256];
-    sprintf(fname, "%s/", dirname);
-    if(read(ff, (void *)(fname+strlen(dirname)+1), 10) < 0) {
-	perror("read(/dev/urandom)"); exit(1);
+    int fd2;
+    if ((fd2 = fsOpen("foo2/file2.txt", 0)) < 0) {
+        perror("fsOpen"); exit(1);
     }
 
-    int i;
-    for(i = 0; i < 10; i++) {
-	//printf("%d\n", ((unsigned char)(fname[i]))%26);
-	fname[i+strlen(dirname)+1] = ((unsigned char)(fname[i+strlen(dirname)+1]))%26 + 'a';
-    }
-    fname[10+strlen(dirname)+1] = (char)0;
-    printf("Filename to write: %s\n", (char *)fname);
-
-    char buf[256];
-    if(read(ff, (void *)buf, 256) < 0) {
-	perror("read(2)"); exit(1);
+    if (fsOpen("foo/file2.txt", 0) >= 0) {
+        printf("ERROR: There should be no file2.txt in server#1\n");
+        exit(1);
     }
 
-    printBuf(buf, 256);
-
-    printf("close(): %d\n", close(ff));
-
-    ff = fsOpen(fname, 1);
-    if(ff < 0) {
-	perror("fsOpen(write)"); exit(1);
+    if (fsOpen("foo2/file1.txt", 0) >= 0) {
+        printf("ERROR: There should be no file1.txt in server#2\n");
+        exit(1);
     }
 
-    if(fsWrite(ff, buf, 256) < 256) {
-	fprintf(stderr, "fsWrite() wrote fewer than 256\n");
+    if (fsOpen("foo3/file1.txt", 0) >= 0) {
+        printf("ERROR: There is no mounted folder called foo3\n");
+        exit(1);
     }
 
-    if(fsClose(ff) < 0) {
-	perror("fsClose"); exit(1);
+    char buf[3001];
+    int bytesread;
+    int i = 0;
+    bytesread = fsRead(fd, (void *)buf, 3000);
+    *((char *) buf + bytesread) = '\0';
+    if (strncmp(buf, "Hello World1", 12) != 0) {
+        printf("ERROR: Read on file1.txt should return 'Hello World1' \n");
+        exit(1);
     }
 
-    char readbuf[256];
-    if((ff = fsOpen(fname, 0)) < 0) {
-	perror("fsOpen(read)"); exit(1);
+    bytesread = fsRead(fd2, (void *)buf, 3000);
+    *((char *) buf + bytesread) = '\0';
+    if (strncmp(buf, "Hello World2", 12) != 0) {
+        printf("ERROR: Read on file2.txt should return 'Hello World2' \n");
+        exit(1);
     }
 
-    int readcount = -1;
+    while ((bytesread = fsRead(fd2, (void *)buf, 3000)) > 0) {
+        *((char *) buf + bytesread) = '\0';
+        printf("%s", (char *) buf);
+        i += 1;
+    }
+    printf("\n");
 
-    if((readcount = fsRead(ff, readbuf, 256)) < 256) {
-	fprintf(stderr, "fsRead() read fewer than 256\n");
+    if (fsRemove("foo/file1.txt") >= 0) {
+        printf("ERROR: Should not be able to delete file1.txt while its open\n"); exit(1);
     }
 
-    if(memcmp(readbuf, buf, readcount)) {
-	fprintf(stderr, "return buf from fsRead() differs from data written!\n");
-    }
-    else {
-	printf("fsread(): return buf identical to data written upto %d bytes.\n", readcount);
+    if (fsRemove("foo") >= 0 || fsRemove("foo2") >= 0) {
+        printf("ERROR: Should not be able to delete mounted folder\n"); exit(1);
     }
 
-    if(fsClose(ff) < 0) {
-	perror("fsClose"); exit(1);
+    if (fsClose(fd) < 0) {
+        perror("fsClose"); exit(1);
     }
 
-    printf("fsRemove(%s): %d\n", fname, fsRemove(fname));
-
-    if(fsUnmount(dirname) < 0) {
-	perror("fsUnmount"); exit(1);
+    if (fsClose(fd2) < 0) {
+        perror("fsClose"); exit(1);
     }
 
+    if (fsUnmount("foo") < 0) {
+        perror("fsUnmount"); exit(1);
+    }
+
+    if (fsUnmount("foo2") < 0) {
+        perror("fsUnmount"); exit(1);
+    }
+
+    printf("All tests passed!\n");
     return 0;
 }

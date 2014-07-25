@@ -9,6 +9,9 @@ client-api.a: libstubs_stuff client_api.o
 fs_client: client-api.a fs_client.o
 	gcc fs_client.o libclient-api.a -o fs_client
 
+fs_client2: client-api.a fs_client2.o
+	gcc fs_client2.o libclient-api.a -o fs_client2
+
 libstubs_stuff:
 	$(MAKE) -C simplified_rpc
 
