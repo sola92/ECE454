@@ -11,6 +11,7 @@
 
 #include "client_api.h"
 
+/* Following convetions @ https://code.google.com/p/google-styleguide */
 
 struct fsDirent    dent;
 struct fd_entry   *fd_list_head = NULL;

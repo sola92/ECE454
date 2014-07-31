@@ -15,6 +15,7 @@
 #define _DEBUG_1_
 #endif
 
+/* Following convetions @ https://code.google.com/p/google-styleguide */
 
 return_type r;
 char *ROOT_PATH;
