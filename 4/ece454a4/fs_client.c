@@ -1,105 +1,80 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+
 #include "ece454_fs.h"
 
 int main(int argc, char *argv[]) {
-    if (argc < 5) {
-        printf("Need: <ip1> <port1> <ip2> <port2> \n");
-        exit(1);
+    if(argc < 3) {
+      fprintf(stderr, "usage: %s <srv-ip> <srv-port>\n", argv[0]);
+      exit(1);
     }
-    const char *ip = argv[1];
-    const int port = atoi(argv[2]);
+    printf("1: %s 2: %d 3: %s 4: %s\n", argv[1], argv[2], argv[3], argv[4]);
+    fsMount(argv[1], atoi(argv[2]), "test");
 
-    const char *ip2 = argv[3];
-    const int port2 = atoi(argv[4]);
-    if (fsMount(ip, port, "foo") < 0) {
-        perror("fsMount"); exit(1);
+    if (fsMount(argv[3], atoi(argv[4]), "test") == -1) printf("fsMount: PASS");
+    else printf("fsMount: FAIL");
+
+    if (fsMount(argv[3], atoi(argv[4]), "test2") == 0) printf("fsMount: PASS");
+    else printf("fsMount: FAIL");
+
+    char buf[256];
+
+    int b;
+    if ((b = fsOpen("test/create", 0)) == -1) printf("fsOpen(read): PASS\n");
+    else printf("fsOpen(read): FAIL\n");
+
+    if ((b = fsOpen("test/create", 1)) != -1) printf("fsOpen(write): PASS\n");
+    else printf("fsOpen(write): FAIL\n");
+
+    if (fsRead(b, buf, 20) == -1) printf("fsRead: PASS\n");
+    else printf("fsRead: FAIL\n");
+
+    if (fsWrite(b, "Hello World", 10) == 10) printf("fsWrite: PASS\n");
+    else printf("fsWrite: FAIL\n");
+
+    if (fsRemove("test/create") == -1) printf("fsRemove: PASS\n");
+    else printf("fsRemove: FAIL\n");
+
+    if (fsClose(b) == 0) printf("fsClose: PASS\n");
+    else printf("fsClose: FAIL\n");
+
+    if ((b = fsOpen("test/create", 0)) != -1) printf("fsOpen(read): PASS\n");
+    else printf("fsOpen(read): FAIL\n");
+
+    char readbuf[10];
+    int n;
+    if ((n = fsRead(b, readbuf, 4) == 4)) {
+      if (!strcmp(readbuf, "Hell")) printf("fsRead: PASS\n");
+      else printf("fsRead - string compare: FAIL\n");
     }
+    else printf("fsRead - num_bytes: FAIL\n");
 
-    if (fsMount(ip, port, "foo") >= 0) {
-        printf("ERROR: Should not be able to mount the same folder twice\n");
-        exit(1);
+    if ((n = fsRead(b, readbuf, 10) == 6)) {
+      if (!strcmp(readbuf, "o Worl")) printf("fsRead: PASS\n");
+      else printf("fsRead - string compare: FAIL\n");
     }
+    else printf("fsRead - num_bytes: FAIL\n");
 
-    if (fsMount(ip2, port2, "foo2") < 0) {
-        perror("fsMount"); exit(1);
-    }
+    fsClose(b);
 
-    int fd;
-    if ((fd = fsOpen("foo/file1.txt", 0)) < 0) {
-        perror("fsOpen"); exit(1);
-    }
+    if (fsRemove("test/create") == 0) printf("fsRemove: PASS\n");
+    else printf("fsRemove: FAIL\n");
 
-    int fd2;
-    if ((fd2 = fsOpen("foo2/file2.txt", 0)) < 0) {
-        perror("fsOpen"); exit(1);
-    }
+    FSDIR *fb;
+    if (!(fb = fsOpenDir("test/noexist"))) printf("fsOpenDir: PASS\n");
+    else printf("fsOpenDir: FAIL\n");
 
-    if (fsOpen("foo/file2.txt", 0) >= 0) {
-        printf("ERROR: There should be no file2.txt in server#1\n");
-        exit(1);
-    }
+    if (fsUnmount("noexist") == -1) printf("fsUnmount: PASS\n");
+    else printf("fsUnmount: FAIL\n");
 
-    if (fsOpen("foo2/file1.txt", 0) >= 0) {
-        printf("ERROR: There should be no file1.txt in server#2\n");
-        exit(1);
-    }
+    if (fsClose(1337) == -1) printf("fsClose: PASS\n");
+    else printf("fsClose: FAIL\n");
 
-    if (fsOpen("foo3/file1.txt", 0) >= 0) {
-        printf("ERROR: There is no mounted folder called foo3\n");
-        exit(1);
-    }
+    if (fsRemove("test/noexist") == -1) printf("fsRemove: PASS\n");
+    else printf("fsRemove: FAIL\n");
 
-    char buf[3001];
-    int bytesread;
-    int i = 0;
-    bytesread = fsRead(fd, (void *)buf, 3000);
-    *((char *) buf + bytesread) = '\0';
-    if (strncmp(buf, "Hello World1", 12) != 0) {
-        printf("ERROR: Read on file1.txt should return 'Hello World1' \n");
-        exit(1);
-    }
-
-    bytesread = fsRead(fd2, (void *)buf, 3000);
-    *((char *) buf + bytesread) = '\0';
-    if (strncmp(buf, "Hello World2", 12) != 0) {
-        printf("ERROR: Read on file2.txt should return 'Hello World2' \n");
-        exit(1);
-    }
-
-    while ((bytesread = fsRead(fd2, (void *)buf, 3000)) > 0) {
-        *((char *) buf + bytesread) = '\0';
-        printf("%s", (char *) buf);
-        i += 1;
-    }
-    printf("\n");
-
-    if (fsRemove("foo/file1.txt") >= 0) {
-        printf("ERROR: Should not be able to delete file1.txt while its open\n"); exit(1);
-    }
-
-    if (fsRemove("foo") >= 0 || fsRemove("foo2") >= 0) {
-        printf("ERROR: Should not be able to delete mounted folder\n"); exit(1);
-    }
-
-    if (fsClose(fd) < 0) {
-        perror("fsClose"); exit(1);
-    }
-
-    if (fsClose(fd2) < 0) {
-        perror("fsClose"); exit(1);
-    }
-
-    if (fsUnmount("foo") < 0) {
-        perror("fsUnmount"); exit(1);
-    }
-
-    if (fsUnmount("foo2") < 0) {
-        perror("fsUnmount"); exit(1);
-    }
-
-    printf("All tests passed!\n");
+    fsUnmount("test");
+    fsUnmount("test2");
     return 0;
 }

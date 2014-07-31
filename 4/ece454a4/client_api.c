@@ -11,46 +11,99 @@
 
 #include "client_api.h"
 
-/**
-    TODO:
- */
 
+struct fsDirent    dent;
+struct fd_entry   *fd_list_head = NULL;
 struct mount_info *mount_info_list_head = NULL;
-struct fd_entry *fd_list_head = NULL;
-struct fsDirent dent;
 
+/**
+ * Returns the successor of a mount_info object
+ *
+ * @param node predecessor object
+ * @return     successor of object passed in
+ */
 void *mount_info_next(void *node) {
     return (void *)((struct mount_info *)node)->next;
 }
 
+/**
+ * Sets connects two mount_info elements. "next" will
+ * be the successor to "node"
+ *
+ * @param node predecessor elements
+ * @param node successor elements
+ */
 void mount_info_set_next(void *node, void *next) {
     ((struct mount_info *)node)->next = (struct mount_info *)next;
 }
 
+/**
+ * Inserts an element into the mount_info linked list.
+ *
+ * @param entry element to insert into the list
+ */
 void mount_info_list_insert(struct mount_info *entry) {
     list_insert((void **)&mount_info_list_head, (void *)entry, mount_info_next, mount_info_set_next);
 }
 
+/**
+ * Remove a mount_info element from the linked list
+ *
+ * @param entry element to be removed
+ */
 void mount_info_list_delete(struct mount_info *entry) {
     list_delete((void **)&mount_info_list_head, (void *)entry, mount_info_next, mount_info_set_next);
 }
 
+/**
+ * Returns the successor of a fd_entry object
+ *
+ * @param node predecessor object
+ * @return     successor of object passed in
+ */
 void *fd_entry_next(void *node) {
     return (void *)((struct fd_entry *)node)->next;
 }
 
+/**
+ * Sets connects two fd_entry elements. "next" will
+ * be the successor to "node"
+ *
+ * @param node predecessor elements
+ * @param node successor elements
+ */
 void fd_entry_set_next(void *node, void *next) {
     ((struct fd_entry *)node)->next = (struct fd_entry *)next;
 }
 
+/**
+ * Inserts an element into the fd_entry linked list.
+ *
+ * @param entry element to insert into the list
+ */
 void fd_entry_list_insert(struct fd_entry *entry) {
     list_insert((void **)&fd_list_head, (void *)entry, fd_entry_next, fd_entry_set_next);
 }
 
+/**
+ * Remove a fd_entry element from the linked list
+ *
+ * @param entry element to be removed
+ */
 void fd_entry_list_delete(struct fd_entry *entry) {
     list_delete((void **)&fd_list_head, entry, fd_entry_next, fd_entry_set_next);
 }
 
+/**
+ * Searches the mount_info linked list for an element with a folder name.
+ * If strict_match is specified, an element with exact same folder name as the argument
+ * is returned. If strict_match is false, an element with longest matching folder name
+ * as the argument is returned.
+ *
+ * @param folder_name  folder to search for
+ * @param strict_match specifies if a strict match is to be made
+ * @return             matched element in the linked list
+ */
 struct mount_info* mount_info_list_find(const char *folder_name, bool strict_match) {
     const int query_length = strlen(folder_name);
     struct mount_info *current = mount_info_list_head;
@@ -69,6 +122,13 @@ struct mount_info* mount_info_list_find(const char *folder_name, bool strict_mat
     return longest_match_so_far;
 }
 
+/**
+ * Searches the fd_entry linked list for an element with the same file descriptor
+ * as the argument.
+ *
+ * @param fd file descriptor to search for
+ * @return   matched element in the linked list
+ */
 struct fd_entry *fd_entry_list_find(int fd) {
     struct fd_entry *current = fd_list_head;
     for (; current != NULL; current = current->next) {
@@ -77,6 +137,13 @@ struct fd_entry *fd_entry_list_find(int fd) {
     return current;
 }
 
+/**
+ * Analyzes a response from the server and checks if it has an error.
+ * If the response has an error, errno is to the errno in the response.
+ *
+ * @param resp server response to be analyzed
+ * @return     boolean indicating whether the response has an error
+ */
 short int handle_possible_error(fs_response *resp) {
     if (resp->in_error) {
         errno = resp->_errno;
@@ -84,6 +151,14 @@ short int handle_possible_error(fs_response *resp) {
     return resp->in_error;
 }
 
+/**
+ * Takes a local path to a mounted folder and the name of the mounted
+ * folder and returns a path relative to the mounted folder.
+ *
+ * @param path              path to a mounted folder
+ * @param local_folder_name name of the mounted folder
+ * @return                  relative path to the mounted folder
+ */
 char *relative_path_from_mount_path(const char *path, const char *local_folder_name) {
     char *relpath;
     if (strcmp(path, local_folder_name) == 0) {
@@ -92,13 +167,21 @@ char *relative_path_from_mount_path(const char *path, const char *local_folder_n
     } else {
         const int slash_index = strlen(local_folder_name);
         const int path_length = strlen(path);
-        //printf("%s \n", local_folder_name + slash_index);
         relpath = (char *)malloc(path_length - slash_index + 1);
         strcpy((char *)relpath, path + slash_index);
     }
     return relpath;
 }
 
+/**
+ * Mounts the remote server folder locally, and have it be referred to as local_folder_name.
+ * Returns 0 on success, and −1 on failure.
+ *
+ * @param ip_or_domain      server IP address or domain name
+ * @param port_no           server port no.
+ * @param local_folder_name name of the mounted folder
+ * @return                  0 on success, and −1 on failure
+ */
 int fsMount(const char *ip_or_domain, const unsigned int port_no, const char *local_folder_name) {
     struct mount_info *info = mount_info_list_find(local_folder_name, true);
     if (info != NULL) {
@@ -124,6 +207,13 @@ int fsMount(const char *ip_or_domain, const unsigned int port_no, const char *lo
     return retval;
 }
 
+/**
+ * Unmounts a remote filesystem that is referred to locally by local_folder_name.
+ * Returns 0 on success, −1.
+ *
+ * @param local_folder_name name of the mounted folder
+ * @return                  0 on success, −1 on failure
+ */
 int fsUnmount(const char *local_folder_name) {
     struct mount_info *info = mount_info_list_find(local_folder_name, true);
     if (info == NULL) {
@@ -135,6 +225,13 @@ int fsUnmount(const char *local_folder_name) {
     return 0;
 }
 
+/**
+ * Opens the folder folder_name that is presumably the local name of
+ * a folder that has been mounted previously. Returns a NULL if an error occurs.
+ *
+ * @param folder_name name of the directory
+ * @return            struct containing details about the directory, NULL if failure
+ */
 FSDIR* fsOpenDir(const char *folder_name) {
     struct mount_info *info = mount_info_list_find(folder_name, false);
     if (info == NULL) {
@@ -165,6 +262,12 @@ FSDIR* fsOpenDir(const char *folder_name) {
     return fsdirp;
 }
 
+/**
+ * Closes a directory.
+ *
+ * @param fsdirp details of the directory to be closed
+ * @return       0 on success, −1 on failure
+ */
 int fsCloseDir(FSDIR *fsdirp) {
     const return_type ans = make_remote_call(fsdirp->mount_info->ip_or_domain,
                                        fsdirp->mount_info->port_no, "fsCloseDir", 1,
@@ -180,6 +283,12 @@ int fsCloseDir(FSDIR *fsdirp) {
     return retval;
 }
 
+/**
+ * Reads a directory. Returns NULL of an error occured.
+ *
+ * @param fsdirp details of the directory to be read
+ * @return       fsDirent of the directory to be read.
+ */
 struct fsDirent *fsReadDir(FSDIR *fsdirp) {
     return_type ans = make_remote_call(fsdirp->mount_info->ip_or_domain,
                                        fsdirp->mount_info->port_no, "fsReadDir", 1,
@@ -196,6 +305,15 @@ struct fsDirent *fsReadDir(FSDIR *fsdirp) {
     return retval;
 }
 
+/**
+ * Opens a file whose path is fname. The mode is one of two values: 0 for read,
+ * and 1 for write. Returns a file descriptor that can be used in future calls for
+ * operations on this file.
+ *
+ * @param fname path of file to be opened
+ * @param mode  read mode. 0 for read, and 1 for write
+ * @return       a file descriptor of the file. -1 if failure
+ */
 int fsOpen(const char *fname, int mode) {
     struct mount_info *info = mount_info_list_find(fname, false);
     if (info == NULL) {
@@ -204,7 +322,6 @@ int fsOpen(const char *fname, int mode) {
     }
 
     char *path = relative_path_from_mount_path(fname, info->local_folder_name);
-    //printf("relpath: %s\n", path);
     if (path == NULL) {
         errno = ENOENT;
         return -1;
@@ -237,6 +354,12 @@ int fsOpen(const char *fname, int mode) {
     return fd;
 }
 
+/**
+ * Closes an open file.
+ *
+ * @param fd file descriptor of file to be closed
+ * @return   0 on success, −1 on failure
+ */
 int fsClose(int fd) {
     struct fd_entry *current = fd_entry_list_find(fd);
 
@@ -260,6 +383,16 @@ int fsClose(int fd) {
     return retval;
 }
 
+/**
+ * Reads up to "count" bytes in to the supplied buffer buf from the file referred
+ * to by the file descriptor fd, which was presumably the return from a call to
+ * fsOpen() in read-mode.
+ *
+ * @param fd    file descriptor of file to be read
+ * @param buf   buffer for data to be written to
+ * @param count number of bytes to be read
+ * @return      0 on success, −1 on failure
+ */
 int fsRead(int fd, void *buf, const unsigned int count) {
     struct fd_entry *current = fd_entry_list_find(fd);
 
@@ -287,6 +420,16 @@ int fsRead(int fd, void *buf, const unsigned int count) {
     return bytesread;
 }
 
+/**
+ * Writes up to "count" bytes from buf into the file referred to with the file
+ * descriptor fd that was presumably the return from an earlier fsOpen() call
+ * in write-mode.
+ *
+ * @param fd    file descriptor of file to be written to
+ * @param buf   buffer of data to be written
+ * @param count number of bytes to be written
+ * @return      0 on success, −1 on failure
+ */
 int fsWrite(int fd, const void *buf, const unsigned int count) {
     struct fd_entry *current = fd_entry_list_find(fd);
 
@@ -307,6 +450,12 @@ int fsWrite(int fd, const void *buf, const unsigned int count) {
     return retval;
 }
 
+/**
+ * Removes (i.e., deletes) this file or folder from the server.
+ *
+ * @param name of file or folder to be removed
+ * @return     0 on success, −1 on failure
+ */
 int fsRemove(const char *name) {
     struct mount_info *info = mount_info_list_find(name, false);
     if (info == NULL) {
